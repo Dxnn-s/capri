@@ -1,0 +1,11 @@
+capri-shell is a fork of capri-desktop by mochiiwuff
+(https://github.com/mochiiwuff/capri-desktop), MIT licensed, with changes
+from the ZahinTapadar fork. The renderer (her sprite, acts, effects, panel,
+window seating), the Win32 window watcher and the overlay host are theirs.
+
+What this fork changes: the Ollama chat and the Claude Code hook bridge are
+gone; her words, her voice and her cues come from Reze's brain (brain-bridge)
+over its edge. See src/main/reze.js and src/renderer/js/link.js.
+
+Capri, Project Capricorn and Cyberpunk: Edgerunners belong to CD PROJEKT RED,
+Studio Trigger and Netflix. This is a fan project for one desk.

@@ -1,0 +1,88 @@
+{
+  "name": "capri-shell",
+  "version": "0.1.0",
+  "description": "Capri on the desk: Reze's body as the Project Capricorn construct, moved by the brain on the box.",
+  "author": "Dennis Xu",
+  "repository": "github:Dxnn-s/capri-shell",
+  "main": "src/main/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "dist:linux": "electron-builder --linux",
+    "dist:all": "electron-builder -mwl",
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "keywords": [
+    "desktop-pet",
+    "electron",
+    "edgerunners",
+    "reze",
+    "brain-bridge"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "electron": "^44.9.3",
+    "electron-builder": "^26.18.0"
+  },
+  "dependencies": {
+    "@fontsource/chakra-petch": "^5.3.0",
+    "@fontsource/jetbrains-mono": "^5.3.0"
+  },
+  "build": {
+    "appId": "capri.shell",
+    "productName": "Capri",
+    "files": [
+      "src/**",
+      "assets/**",
+      "package.json",
+      "LICENSE",
+      "NOTICE"
+    ],
+    "asarUnpack": [
+      "hooks/**",
+      "src/main/windows.ps1"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icons/capri.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Capri",
+      "artifactName": "Capri-Shell-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "icon": "assets/icons/capri.icns",
+      "category": "public.app-category.utilities",
+      "artifactName": "Capri-${version}-mac-${arch}.${ext}",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "artifactName": "Capri-${version}-mac-${arch}.dmg"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "assets/icons/capri.png",
+      "category": "Utility",
+      "artifactName": "Capri-${version}-linux-${arch}.${ext}"
+    }
+  }
+}
