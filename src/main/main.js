@@ -435,7 +435,15 @@ function relink() {
   brain = reze.settings(config.load());
   link?.stop();
   link = new reze.Link({ url: brain.runtime, token: brain.token });
-  link.on('cue', handleCue);
+  // Sharing the desk with Cera's Live2D stage (CAPRI_DESK=both, the default since
+  // 2026-10-27): the brain's spoken lines and stops are Reze's, for the stage; Capri
+  // takes the moves and the faces, and speaks only her own lines. CAPRI_DESK=solo
+  // makes her the only body and she speaks every pushed line.
+  const solo = String(process.env.CAPRI_DESK || 'both').trim().toLowerCase() === 'solo';
+  link.on('cue', (cue) => {
+    if (!solo && (cue.kind === 'speak' || cue.kind === 'stop')) return;
+    handleCue(cue);
+  });
   link.on('state', ({ linked }) => {
     const why = !linked && link.lastClose ? ` (close ${link.lastClose.code} ${link.lastClose.reason})` : '';
     console.log(`[capri] ${new Date().toISOString().slice(11, 19)} brain ${linked ? 'linked' : 'away'}: ${brain.runtime}${why}`);

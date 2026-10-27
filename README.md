@@ -35,6 +35,9 @@ npm test
 
 ## Versions
 
+- 0.7.1: shares the desk with Cera by default (CAPRI_DESK=both): the brain's pushed lines are
+  Reze's for the stage; Capri takes moves and faces and speaks her own lines. CAPRI_DESK=solo
+  makes her the only body.
 - 0.7.0: cels. A short image-to-video clip from one of her drawings (Kling turbo, three
   seconds) is cut to frames on twos, keyed and packed by `tools/make-cels.py`; the desk loops
   a cel set frame by frame (poses.js `play`). First set: the crouch idle, 37 cels.
