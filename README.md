@@ -35,6 +35,7 @@ npm test
 
 ## Versions
 
+- 0.6.4: the point redone on show frames only (Dennis: the first did not look like her).
 - 0.6.3: make-pose takes `--height` (the figure's height in sprite px) and cuts at full resolution.
 - 0.6.2: the cackle (retry with the show's laugh frames only; one of four kept).
 - 0.6.1: the point at the sky (round 2, one of four kept).

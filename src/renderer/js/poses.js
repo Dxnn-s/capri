@@ -11,8 +11,8 @@ export const POSES = {
   sit: { file: 'pose-sit.png', anchor: { x: 432, y: 552 } },
   // generated (Nano Banana, show frames as references, round 1 variant 4): crouched, arms around her knees
   crouch: { file: 'pose-crouch.png', anchor: { x: 196, y: 548 } },
-  // generated (round 2 variant 2): the point at the sky, mane streaming back
-  point: { file: 'pose-point.png', anchor: { x: 166, y: 536 } },
+  // generated (round 3, show frames only, variant 4): the point at the sky, the cloud streaming back
+  point: { file: 'pose-point.png', anchor: { x: 172, y: 538 } },
   // generated (round 2 retry, show laugh frames as references, variant 3): the cackle, mane exploded
   cackle: { file: 'pose-cackle.png', anchor: { x: 152, y: 498 } },
 };
