@@ -35,6 +35,9 @@ npm test
 
 ## Versions
 
+- 0.4.1: review fixes. Wake wakes her before the hop, a stroll she cannot take becomes a plain
+  move, a flung Capri faces the way she flew and bounces off the top of the screen, the drag
+  trail is the last 150 ms, the launcher only stops a process that answers as her.
 - 0.4.0: the behaviors. The brain's move spots sit, peek, hide, possess, sleep, wake and
   stroll (spring hops along the bottom); a drag released with speed is a throw (walls, air
   drag, a bounce). `npm run desk` stops a running instance first. Debug routes drag and state.

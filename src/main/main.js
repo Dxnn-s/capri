@@ -506,8 +506,9 @@ function registerIpc() {
 // Only in --dev: lets scripts drive the overlay and grab frames of it (no desktop content, just our window).
 const testWins = new Map(); // name -> test window
 
-async function debugHandler(route, body) {
+async function debugHandler(route, body = {}) {
   if (!DEV) throw new Error('debug routes need --dev');
+  if (!overlay || overlay.isDestroyed()) throw new Error('no overlay');
   if (route === 'command') {
     sendCommand(body.name, body);
     return { ok: true };
@@ -581,6 +582,7 @@ async function debugHandler(route, body) {
   }
   if (route === 'drag') {
     // a drag of the pointer over the overlay: down at `from`, `steps` moves over `ms`, up at `to`
+    if (!body.from || !body.to) throw new Error('drag needs from and to');
     const from = { x: Math.round(body.from.x), y: Math.round(body.from.y) };
     const to = { x: Math.round(body.to.x), y: Math.round(body.to.y) };
     const steps = Math.max(2, Number(body.steps) || 8);

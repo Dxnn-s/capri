@@ -1487,14 +1487,17 @@ export class Capri {
       // thrown: sideways too, the air slows her, the walls send her back, and what is under
       // her changes as she goes
       this.vx *= Math.exp(-dt * 1.1);
+      this.facing = this.vx < 0 ? 1 : -1;
       if (Math.abs(this.vx) < 40) this.vx = 0;
       const edge = 60;
       let x = this.pos.x + this.vx * dt;
       if (x < edge) { x = edge; this.vx = -this.vx * 0.55; this.voice.play('tick'); }
       else if (x > this.view.w - edge) { x = this.view.w - edge; this.vx = -this.vx * 0.55; this.voice.play('tick'); }
       this.pos.x = x;
-      this.facing = this.vx < 0 ? 1 : -1;
       this.landingSpot = this.landing();
+      // the top of the screen is a wall too: an upward flick bounces her back down
+      const ceiling = SPRITE.height * this.scale * 0.6;
+      if (this.vy < 0 && this.pos.y + this.vy * dt < ceiling) { this.pos.y = ceiling; this.vy = -this.vy * 0.45; this.voice.play('tick'); }
     }
     const target = this.landingSpot;
     const y = reducedMotion.matches ? target.y : this.pos.y + this.vy * dt;
@@ -1728,8 +1731,9 @@ export class Capri {
             x: clamp(down.pos.x + dx, 40, this.view.w - 40),
             y: clamp(down.pos.y + dy, SPRITE.height * this.scale * 0.5, this.floor),
           };
-          (down.trail ||= []).push({ x: this.pos.x, y: this.pos.y, t: performance.now() });
-          if (down.trail.length > 8) down.trail.shift();
+          const now = performance.now();
+          (down.trail ||= []).push({ x: this.pos.x, y: this.pos.y, t: now });
+          while (down.trail.length > 1 && now - down.trail[0].t > 150) down.trail.shift(); // the last 150 ms only
           this.p.glitchSeed = Math.random() * 100;
           this.place();
         }

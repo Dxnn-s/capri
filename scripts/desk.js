@@ -22,7 +22,7 @@ delete env.ELECTRON_RUN_AS_NODE; // set by some hosts; it would run her main as 
 async function stopRunning() {
   try {
     const r = await fetch('http://127.0.0.1:47823/health', { signal: AbortSignal.timeout(1500) }).then((x) => x.json());
-    if (r && r.pid) { process.kill(r.pid); await new Promise((d) => setTimeout(d, 1200)); console.log(`stopped the one on the desk (pid ${r.pid})`); }
+    if (r && r.name === 'capri' && r.pid > 0) { process.kill(r.pid); await new Promise((d) => setTimeout(d, 1200)); console.log(`stopped the one on the desk (pid ${r.pid})`); }
   } catch { /* nobody there */ }
 }
 

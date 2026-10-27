@@ -13,6 +13,8 @@ test('link.js: every behavior spot has a case', () => {
   for (const spot of ['sit', 'peek', 'hide', 'possess', 'sleep', 'wake', 'stroll']) assert.match(link, new RegExp(`case '${spot}'`), spot);
   assert.match(link, /case 'hide': return capri\.canPossess\(\) \? capri\.possess\(\) : capri\.peek\(/, 'hide is a possession when seated, a peek otherwise');
   assert.match(link, /case 'sleep': capri\.setMode\('sleep'\); return;/);
+  assert.match(link, /case 'wake': capri\.wake\(\); capri\.perform\('hop'\); return;/, 'wake wakes her before the hop');
+  assert.match(link, /case 'stroll': if \(await capri\.stroll\(\)\) return; break;/, 'a stroll she cannot take becomes a plain move');
 });
 
 test('capri.js: the stroll hops along the floor and turns at walls; a fling becomes a toss with walls and a bounce', () => {
@@ -20,6 +22,8 @@ test('capri.js: the stroll hops along the floor and turns at walls; a fling beco
   assert.match(capri, /if \(x < side \|\| x > w - side\) \{ d = -d;/, 'a wall turns her');
   assert.match(capri, /toss\(vx, vy\) \{\n\s+if \(this\.stance === 'fall'\) return;\n\s+this\.fall\(\);\n\s+this\.vx = clamp\(vx, -1800, 1800\);/);
   assert.match(capri, /if \(x < edge\) \{ x = edge; this\.vx = -this\.vx \* 0\.55;/, 'the left wall');
+  assert.match(capri, /this\.facing = this\.vx < 0 \? 1 : -1;\n\s+if \(Math\.abs\(this\.vx\) < 40\) this\.vx = 0;/, 'she faces the way she flew, read before the speed is zeroed');
+  assert.match(capri, /const ceiling = SPRITE\.height \* this\.scale \* 0\.6;/, 'the top is a wall');
   assert.match(capri, /if \(this\.vx && this\.bounces < 2 && this\.vy > 900 && target\.stance === 'stand'\) \{/, 'a bounce on a hard landing');
   assert.match(capri, /const v = this\.flingSpeed\(trail\);\n\s+if \(v\) this\.toss\(v\.vx, v\.vy\);\n\s+else this\.drop\(\);/);
   assert.match(capri, /return Math\.hypot\(vx, vy\) > 700 \? \{ vx, vy \} : null;/, 'a slow let-go is a drop');

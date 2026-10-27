@@ -133,8 +133,8 @@ export class Link {
         return;
       }
       case 'sleep': capri.setMode('sleep'); return;
-      case 'wake': capri.perform('hop'); return;
-      case 'stroll': return capri.stroll();
+      case 'wake': capri.wake(); capri.perform('hop'); return;
+      case 'stroll': if (await capri.stroll()) return; break; // seated or busy: a plain move instead
       default: break;
     }
     const { w } = capri.view;
