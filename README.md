@@ -35,6 +35,9 @@ npm test
 
 ## Versions
 
+- 0.3.0: she answers as herself. The desk asks the brain for the `capri` model, a skin with
+  its own soul, lean, memory and audit in the vault (brain-bridge `src/capri-skin.js`);
+  Discord stays Reze. `CAPRI_MODEL=reze` talks to the brain as Reze instead.
 - 0.2.0: the life layer (life.js: breath, weight shift, glances, the mane lagging a move),
   spring glides for short moves with a hard landing, two beats keyed from show frames
   (lean, recoil: a smeared snap frame and a hold), the show's own sitting drawing snapping
