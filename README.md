@@ -35,6 +35,9 @@ npm test
 
 ## Versions
 
+- 0.7.0: cels. A short image-to-video clip from one of her drawings (Kling turbo, three
+  seconds) is cut to frames on twos, keyed and packed by `tools/make-cels.py`; the desk loops
+  a cel set frame by frame (poses.js `play`). First set: the crouch idle, 37 cels.
 - 0.6.4: the point redone on show frames only (Dennis: the first did not look like her).
 - 0.6.3: make-pose takes `--height` (the figure's height in sprite px) and cuts at full resolution.
 - 0.6.2: the cackle (retry with the show's laugh frames only; one of four kept).

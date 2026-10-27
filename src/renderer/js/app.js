@@ -8,7 +8,7 @@ import { Guide } from './guide.js';
 import { Mission } from './mission.js';
 import { Chat } from './chat.js';
 import { Link } from './link.js';
-import { PoseLayer, POSES } from './poses.js';
+import { PoseLayer, POSES, CELS } from './poses.js';
 import { ACTS } from './acting.js';
 import { LINES } from './lines.js';
 import { pick, fmt, duration, rand, reducedMotion } from './util.js';
@@ -80,7 +80,19 @@ async function boot() {
   const poseImages = {};
   await Promise.all(Object.entries(POSES).map(([name, p]) => loadImage(`../../assets/capri/${p.file}`)
     .then((img) => createImageBitmap(img)).then((bmp) => { poseImages[name] = bmp; }).catch(() => null)));
-  const poses = new PoseLayer(document.getElementById('pose'), poseImages);
+  // her cel sets (poses.js CELS): the manifest, then every frame decoded
+  const celSets = {};
+  await Promise.all(Object.entries(CELS).map(async ([name, c]) => {
+    try {
+      const manifest = await (await fetch(`../../assets/capri/${c.file}`)).json();
+      const dir = c.file.replace(/\.json$/, '');
+      const frames = await Promise.all(manifest.frames.map((f) => loadImage(`../../assets/capri/${dir}/${f}`).then((img) => createImageBitmap(img))));
+      celSets[name] = { manifest, frames };
+    } catch (err) {
+      console.warn('[capri] cel set missing:', name, err?.message);
+    }
+  }));
+  const poses = new PoseLayer(document.getElementById('pose'), poseImages, celSets);
   poses.resize(innerWidth, innerHeight);
   capri.poses = poses;
 
@@ -464,6 +476,13 @@ async function boot() {
         capri.canvas.style.visibility = 'hidden';
         poses.show(cmd.pose, { at, scale: capri.scale, facing: capri.facing });
         setTimeout(() => { poses.hide(); capri.canvas.style.visibility = ''; }, cmd.ms || 2000);
+        break;
+      }
+      case 'cels': { // --dev: loop a cel set where she stands, for `ms` (default 4 s)
+        if (!poses.hasCels(cmd.cels)) break;
+        capri.canvas.style.visibility = 'hidden';
+        poses.play(cmd.cels, { at: { ...capri.pos }, scale: capri.scale, facing: capri.facing });
+        setTimeout(() => { poses.stop(); capri.canvas.style.visibility = ''; }, cmd.ms || 4000);
         break;
       }
       case 'sit': { // --dev: onto a window she could sit on

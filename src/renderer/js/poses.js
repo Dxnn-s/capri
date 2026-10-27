@@ -17,12 +17,67 @@ export const POSES = {
   cackle: { file: 'pose-cackle.png', anchor: { x: 152, y: 498 } },
 };
 
+// Cel sets (tools/make-cels.py): a short clip of her, cut to frames on twos, keyed and
+// packed. Each is a folder of PNGs and a manifest { fps, frames, width, height, anchor }.
+// They are the fluid part: a drawing that breathes, a mane that drifts, in the show's own
+// hand, looped on the desk where the shader rig would only warp one drawing.
+export const CELS = {
+  'crouch-idle': { file: 'cels/crouch-idle.json' },
+};
+
 export class PoseLayer {
-  constructor(canvas, images) {
+  constructor(canvas, images, cels = {}) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.images = images; // name -> ImageBitmap | HTMLImageElement
+    this.cels = cels;     // name -> { manifest, frames: [ImageBitmap] }
     this.shown = null;
+    this.playing = null;
+  }
+
+  hasCels(name) {
+    return Boolean(this.cels[name] && this.cels[name].frames.length);
+  }
+
+  /**
+   * Loop a cel set at its own fps until stop(); `at` is where its anchor sits, screen px.
+   * Frames change on whole frames (no blending), like cels.
+   */
+  play(name, { at, scale = 0.6, facing = 1, loop = true, onEnd = null } = {}) {
+    const set = this.cels[name];
+    if (!set) return false;
+    this.stop();
+    const { manifest, frames } = set;
+    const dpr = devicePixelRatio;
+    const state = { name, i: -1, raf: 0, t0: performance.now() };
+    this.playing = state;
+    const draw = (now) => {
+      if (this.playing !== state) return;
+      const idx = Math.floor((now - state.t0) / (1000 / manifest.fps));
+      if (!loop && idx >= frames.length) { this.stop(); onEnd?.(); return; }
+      const i = idx % frames.length;
+      if (i !== state.i) {
+        state.i = i;
+        const { ctx, canvas } = this;
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.translate(at.x, at.y);
+        ctx.scale(scale * facing, scale);
+        ctx.translate(-manifest.anchor.x, -manifest.anchor.y);
+        ctx.drawImage(frames[i], 0, 0);
+        this.canvas.hidden = false;
+        this.shown = name;
+      }
+      state.raf = requestAnimationFrame(draw);
+    };
+    state.raf = requestAnimationFrame(draw);
+    return true;
+  }
+
+  stop() {
+    if (this.playing) { cancelAnimationFrame(this.playing.raf); this.playing = null; }
+    this.hide();
   }
 
   has(name) {
@@ -69,6 +124,7 @@ export class PoseLayer {
   }
 
   hide() {
+    if (this.playing) { cancelAnimationFrame(this.playing.raf); this.playing = null; }
     if (!this.shown) return;
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
