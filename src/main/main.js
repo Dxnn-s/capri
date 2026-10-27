@@ -353,6 +353,29 @@ async function handleCue(cue) {
   }
 }
 
+// Her own words (2026-10-27, Dennis: "she should talk on her own too"): the
+// brain is asked for one line as her, with the occasion in brackets, and the
+// line is shown and spoken like a pushed one. Occasions: 'hello' when she
+// comes up on the desk, and what the overlay reports about the machine (the
+// battery running low, too many windows). One at a time, never more than one
+// a minute, so she comments, not nags.
+let lastOwnLine = 0;
+let saidHello = false;
+async function ownLine(occasion, { minGapMs = 60000 } = {}) {
+  if (!overlay || Date.now() - lastOwnLine < minGapMs) return;
+  lastOwnLine = Date.now();
+  try {
+    const text = await reze.chat(brain, {
+      model: pickModel(),
+      messages: [{ role: 'user', content: `(not him talking: ${occasion}. Say one short line of your own, out loud, as yourself. No question back unless it fits.)` }],
+    }, null, AbortSignal.timeout(60000));
+    const line = String(text || '').trim();
+    if (line) await handleCue({ kind: 'speak', text: line });
+  } catch (err) {
+    console.error('[capri] her own line failed:', err.message);
+  }
+}
+
 function relink() {
   brain = reze.settings(config.load());
   link?.stop();
@@ -363,6 +386,10 @@ function relink() {
     console.log(`[capri] ${new Date().toISOString().slice(11, 19)} brain ${linked ? 'linked' : 'away'}: ${brain.runtime}${why}`);
     rebuildTray();
     toOverlay({ kind: 'link', linked });
+    if (linked && !saidHello && !process.env.CAPRI_QUIET) {
+      saidHello = true;
+      setTimeout(() => ownLine('you just came up on his desk after a start, excited to be back', { minGapMs: 0 }), 2500);
+    }
   });
   link.on('error', (err) => console.error('[capri] link:', err.message));
   link.start();
@@ -417,6 +444,8 @@ function registerIpc() {
     if (!models.length) return { ok: false, error: 'nomodel' };
     return { ok: true, model: pickModel() };
   });
+  // the overlay saw something about the machine worth a word from her
+  ipcMain.on('brain:occasion', (_e, occasion) => { if (typeof occasion === 'string' && occasion.length < 200) ownLine(occasion, { minGapMs: 20 * 60000 }); });
   ipcMain.handle('brain:status', () => ({ linked: Boolean(link?.linked), origin: brain.origin, model: pickModel(), voice: brain.voice }));
   // her voice for a line she wrote herself (a chat answer): mp3 as base64, or null
   ipcMain.handle('brain:voice', (_e, text) => reze.speak(brain, text).catch((err) => {

@@ -389,7 +389,29 @@ async function boot() {
   host.onWindows((data) => {
     capri.setWindows(data);
     brain.onWindows(data);
+    // too many windows open: a word, once in a while (Capri 1.6 does this; hers is a brain line)
+    if (data.wins.length >= 14 && performance.now() - lastWindowsNag > 60 * 60000) {
+      lastWindowsNag = performance.now();
+      host.occasion(`he has ${data.wins.length} windows open right now`);
+    }
   });
+  let lastWindowsNag = -Infinity;
+  // the battery running low on his laptop: she notices, once per discharge
+  let lowSaid = false;
+  const watchBattery = async () => {
+    try {
+      const b = await navigator.getBattery?.();
+      if (!b) return;
+      const check = () => {
+        if (!b.charging && b.level <= 0.15 && !lowSaid) { lowSaid = true; host.occasion(`his laptop battery is at ${Math.round(b.level * 100)} percent and unplugged`); }
+        if (b.charging) lowSaid = false;
+      };
+      b.addEventListener('levelchange', check);
+      b.addEventListener('chargingchange', check);
+      check();
+    } catch { /* no battery here */ }
+  };
+  watchBattery();
   // the windows as they are now: the watcher only speaks again when something changes
   host.windowsNow().then((data) => data && capri.setWindows(data));
   // a focus round already running (the overlay reloaded): pick the countdown back up

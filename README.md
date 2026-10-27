@@ -35,6 +35,9 @@ npm test
 
 ## Versions
 
+- 0.5.0: her own words. She says hello in her voice when she comes up on the desk, and
+  comments on the machine (the battery running low, too many windows) with a line the brain
+  writes as her, at most one every twenty minutes. `CAPRI_QUIET=1` keeps her quiet at start.
 - 0.4.1: review fixes. Wake wakes her before the hop, a stroll she cannot take becomes a plain
   move, a flung Capri faces the way she flew and bounces off the top of the screen, the drag
   trail is the last 150 ms, the launcher only stops a process that answers as her.
