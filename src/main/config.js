@@ -15,7 +15,7 @@ const DEFAULTS = {
   visible: true,
   welcomed: false,   // she has introduced herself (her welcome panel)
   linked: false,     // a Claude Code event has reached her at least once
-  chatModel: null,   // who answers her chat, from the gateway's roster (null: reze)
+  chatModel: null,   // who answers her chat, from the gateway's roster (null: capri, the skin)
   brainUrl: '',      // the brain's edge (empty: the default in reze.js); CAPRI_BRAIN overrides
   brainKey: '',      // the gateway's bearer (empty: 'reze'); CAPRI_BRAIN_KEY overrides
   runtimeToken: '',  // the runtime socket's token, when it wants one; CAPRI_RUNTIME_TOKEN overrides

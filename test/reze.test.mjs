@@ -29,7 +29,7 @@ test('settings: the edge by default, the environment over the config', () => {
     assert.equal(d.gateway, `${reze.DEFAULT_ORIGIN}/v1`);
     assert.equal(d.runtime, `${reze.DEFAULT_ORIGIN.replace(/^http/, 'ws')}/ws`);
     assert.equal(d.key, 'reze');
-    assert.equal(d.model, 'reze');
+    assert.equal(d.model, 'capri');
     assert.equal(d.voice, 'capri');
     const c = reze.settings({ brainUrl: 'http://127.0.0.1:8901/', model: 'lelouch' });
     assert.equal(c.gateway, 'http://127.0.0.1:8901/v1');

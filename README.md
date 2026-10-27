@@ -28,11 +28,16 @@ Settings come from the environment first, then her config: `CAPRI_BRAIN`
 
 ```
 npm install
-npm start          # or: npm run dev
+npm run desk       # detached from the terminal (npm start ties her to it)
+npm run desk:dev   # with the debug routes on her local port
 npm test
 ```
 
 ## Versions
 
+- 0.2.0: the life layer (life.js: breath, weight shift, glances, the mane lagging a move),
+  spring glides for short moves with a hard landing, two beats keyed from show frames
+  (lean, recoil: a smeared snap frame and a hold), the show's own sitting drawing snapping
+  in on the seat (poses.js, tools/cut-pose.py), the point cut-in, and `npm run desk`.
 - 0.1.0: the fork. She stands on the desk, links to the brain, and teleports
   to the cursor when it needs you. Chat and voice go through the gateway.

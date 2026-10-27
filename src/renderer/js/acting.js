@@ -282,6 +282,39 @@ export const ACTS = {
     ],
   },
 
+  // The big lean-in (ep 3, frame 1127: the whole body pitched toward what she wants, mane
+  // streaming back, both arms thrown ahead). One drawing of anticipation the other way, the
+  // snap on a smeared frame, a hold, and a slower settle. Values read off the frame by eye.
+  lean: {
+    priority: 2,
+    fps: 24,
+    directional: true,
+    keys: [
+      [2, { head: -0.1, mane: -0.15, tilt: -3, sy: 0.94, sx: 1.04 }],
+      [1, { head: 0.3, mane: 0.55, tilt: 24, armL: 0.9, armR: 0.7, longL: 1.6, longR: 1.3, sy: 1.08, sx: 0.94, smear: [-22, 6], echo: [12, 0] }],
+      [10, { head: 0.28, mane: 0.5, tilt: 26, armL: 0.85, armR: 0.65, longL: 1.45, longR: 1.25, bob: 4 }],
+      [6, { head: 0.24, mane: 0.42, tilt: 22, armL: 0.8, armR: 0.6, longL: 1.4, longR: 1.2, bob: 3 }],
+      [2, { head: 0.1, mane: 0.2, tilt: 8, armL: 0.3, armR: 0.2, smear: [10, 0] }],
+      [1, {}],
+    ],
+  },
+
+  // The recoil (ep 3, frame 946, "No way!": thrown back, arms up and out, head back, mane
+  // blown up). A crouch of anticipation, the snap, a hold, and the arms coming down in two.
+  recoil: {
+    priority: 2,
+    fps: 24,
+    directional: true,
+    keys: [
+      [1, { head: 0.08, mane: 0.1, tilt: 3, sy: 0.92, sx: 1.06 }],
+      [1, { head: -0.32, mane: 0.6, tilt: -18, armL: 1.1, armR: 1.0, sy: 1.1, sx: 0.92, bob: -8, smear: [16, -6], echo: [-10, 0] }],
+      [8, { head: -0.3, mane: 0.55, tilt: -20, armL: 1.05, armR: 0.95, bob: -6 }],
+      [5, { head: -0.22, mane: 0.4, tilt: -14, armL: 0.8, armR: 0.7, bob: -3 }],
+      [2, { head: -0.08, mane: 0.15, tilt: -5, armL: 0.3, armR: 0.25, smear: [-8, 0] }],
+      [1, {}],
+    ],
+  },
+
   // Folding herself away into her biochip: a little cock of the head at you, then the mane
   // and the arms pulled in tight, crouching small.
   fold: {

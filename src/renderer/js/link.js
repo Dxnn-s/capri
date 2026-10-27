@@ -14,13 +14,13 @@ import { pick } from './util.js';
 // the stage's faces and gestures -> her panel face and her act
 const EXPRESS = {
   smile: { face: 'smug', act: 'hop' },
-  surprised: { face: 'wide', act: 'flinch' },
+  surprised: { face: 'wide', act: 'recoil' },
   thinking: { face: 'aside', act: 'curious' },
-  focused: { face: 'calm', act: 'look' },
+  focused: { face: 'calm', act: 'lean' },
   tired: { face: 'aside', act: 'fold' },
   asleep: { face: 'calm', act: 'fold', doze: true },
   sad: { face: 'aside', act: 'fold' },
-  angry: { face: 'many', act: 'alarm' },
+  angry: { face: 'many', act: 'recoil' },
   cry: { face: 'aside', act: 'plop' },
   blank: { face: 'calm', act: null },
   pillow: { face: 'calm', act: 'fold' },
@@ -30,6 +30,7 @@ const EXPRESS = {
   pout: { face: 'aside', act: 'turn' },
   smirk: { face: 'smug', act: 'look' },
   laugh: { face: 'laugh', act: 'victory', cutin: true },
+  // (cutin: true picks a laugh or grin close-up; a name picks that cut-in)
   embarrassed: { face: 'aside', act: 'turn' },
   nod: { face: 'look', act: 'hop' },
   shake: { face: 'aside', act: 'turn' },
@@ -37,7 +38,7 @@ const EXPRESS = {
   doze: { face: 'calm', act: null, doze: true },
   slump: { face: 'aside', act: 'plop' },
   shrug: { face: 'aside', act: 'fold' },
-  wave: { face: 'smug', act: 'point' },
+  wave: { face: 'smug', act: 'point', cutin: 'point' },
   hug: { face: 'smug', act: 'fold' },
   curious: { face: 'look', act: 'curious' },
   sleepy: { face: 'calm', act: 'fold', doze: true },
@@ -104,7 +105,11 @@ export class Link {
     if (spot === 'here' || spot === 'follow') {
       const cursor = await host.cursor().catch(() => null);
       if (cursor?.inside) {
-        await capri.summon(cursor);
+        // close by: she glides over on springs; across the screen: the teleport
+        const to = capri.besideCursor(cursor);
+        const near = Math.hypot(to.x - capri.pos.x, to.y - capri.pos.y) < capri.view.w * 0.45 && capri.stance === 'stand';
+        if (near) await capri.glide(to, { face: cursor.x < to.x ? 1 : -1 });
+        else await capri.summon(cursor);
       } else {
         await capri.teleport(capri.spot('stage'), { face: capri.towardCenter() });
       }
@@ -134,7 +139,7 @@ export class Link {
     if (!e) return;
     await this.ready();
     panel.setFace(e.face);
-    if (e.cutin) capri.fx.cutin(...capri.cutinAt(capri.towardCenter()), { kind: pick(['laugh', 'grin']) });
+    if (e.cutin) capri.fx.cutin(...capri.cutinAt(capri.towardCenter()), { kind: e.cutin === true ? pick(['laugh', 'grin']) : e.cutin });
     if (e.act) capri.perform(e.act, capri.towardCenter());
     if (e.doze) setTimeout(() => { if (!capri.busy) capri.setMode('sleep'); }, 1500);
   }

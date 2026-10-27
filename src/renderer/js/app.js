@@ -8,6 +8,8 @@ import { Guide } from './guide.js';
 import { Mission } from './mission.js';
 import { Chat } from './chat.js';
 import { Link } from './link.js';
+import { PoseLayer, POSES } from './poses.js';
+import { ACTS } from './acting.js';
 import { LINES } from './lines.js';
 import { pick, fmt, duration, rand, reducedMotion } from './util.js';
 
@@ -23,7 +25,7 @@ function loadImage(src) {
 }
 
 // close-ups of her for the cut-ins, frames of the show (tools/build-cutins.py)
-const CUTINS = ['grin', 'laugh', 'eyes', 'many', 'look'];
+const CUTINS = ['grin', 'laugh', 'eyes', 'many', 'look', 'point'];
 
 async function boot() {
   const [config, image, intro, ...cutins] = await Promise.all([
@@ -34,7 +36,7 @@ async function boot() {
       // decoded now, not the first time each one shows up (a hitch right on "hi", on the wave)
       .then((cels) => Promise.all(cels.map((cel) => cel && createImageBitmap(cel))))
       .then((cels) => (cels[0] ? Object.fromEntries(GRAB_FRAMES.map((name, i) => [name, cels[i]])) : null)),
-    ...CUTINS.map((name) => loadImage(`../../assets/capri/cutin-${name}.png`)),
+    ...CUTINS.map((name) => loadImage(`../../assets/capri/cutin-${name}.png`).catch(() => null)),
     document.fonts.load('600 16px "Chakra Petch"'),
     document.fonts.load('400 11px "JetBrains Mono"'),
   ]);
@@ -70,6 +72,13 @@ async function boot() {
   capri.wander = config.wander;
   capri.possessWindows = config.possess;
   capri.setScale(config.scale);
+  // the show's own drawings for her beats (poses.js), decoded now
+  const poseImages = {};
+  await Promise.all(Object.entries(POSES).map(([name, p]) => loadImage(`../../assets/capri/${p.file}`)
+    .then((img) => createImageBitmap(img)).then((bmp) => { poseImages[name] = bmp; }).catch(() => null)));
+  const poses = new PoseLayer(document.getElementById('pose'), poseImages);
+  poses.resize(innerWidth, innerHeight);
+  capri.poses = poses;
 
   const mission = new Mission();
   const brain = new Brain({ capri, panel, voice, host, mission, lang: config.lang });
@@ -386,11 +395,13 @@ async function boot() {
 
   host.onResize(({ width, height }) => {
     fx.resize(width, height);
+    poses.resize(width, height);
     chip.place(width, height);
     capri.setView(width, height);
   });
   window.addEventListener('resize', () => {
     fx.resize(innerWidth, innerHeight);
+    poses.resize(innerWidth, innerHeight);
     chip.place(innerWidth, innerHeight);
     capri.setView(innerWidth, innerHeight);
   });
@@ -412,6 +423,20 @@ async function boot() {
     switch (cmd.name) {
       case 'teleport':
         capri.teleport(capri.spot('random'));
+        break;
+      case 'act': // --dev: one act by name, toward the middle unless a dir is given
+        if (ACTS[cmd.act]) capri.perform(cmd.act, cmd.dir ?? capri.towardCenter());
+        break;
+      case 'glide': // --dev: the spring move to a point
+        if (Number.isFinite(cmd.x) && Number.isFinite(cmd.y)) capri.glide({ x: cmd.x, y: cmd.y });
+        break;
+      case 'sit': { // --dev: onto a window she could sit on
+        const seat = capri.pickSeat();
+        if (seat) capri.sitOn(seat);
+        break;
+      }
+      case 'cue': // --dev: a brain cue, as if pushed
+        link.handle(cmd.cue).catch((err) => console.error('[capri] cue failed:', err));
         break;
       case 'status':
         brain.status();

@@ -349,7 +349,7 @@ async function handleCue(cue) {
       console.error('[capri] her voice failed:', err.message);
       return null;
     });
-    if (audio) toOverlay({ kind: 'speak-audio', audio });
+    if (audio) { console.log(`[capri] voice: ${Math.round(audio.length * 0.75 / 1024)} KB`); toOverlay({ kind: 'speak-audio', audio }); }
   }
 }
 

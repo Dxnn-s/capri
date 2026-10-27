@@ -1,6 +1,6 @@
 {
   "name": "capri-shell",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Capri on the desk: Reze's body as the Project Capricorn construct, moved by the brain on the box.",
   "author": "Dennis Xu",
   "repository": "github:Dxnn-s/capri-shell",
@@ -14,7 +14,9 @@
     "dist:mac": "electron-builder --mac",
     "dist:linux": "electron-builder --linux",
     "dist:all": "electron-builder -mwl",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "node --test \"test/**/*.test.mjs\"",
+    "desk": "node scripts/desk.js",
+    "desk:dev": "node scripts/desk.js --dev"
   },
   "keywords": [
     "desktop-pet",
@@ -41,6 +43,7 @@
     "files": [
       "src/**",
       "assets/**",
+      "scripts/desk.js",
       "package.json",
       "LICENSE",
       "NOTICE"

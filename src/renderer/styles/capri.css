@@ -118,6 +118,19 @@ body {
   pointer-events: none;
 }
 
+/* the show's own drawings on a beat (poses.js), where her sprite was */
+.pose {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.pose[hidden] {
+  display: none;
+}
+
 /* her small forms (chip.js): her biochip in the corner, her mask floating while she sleeps */
 .chip {
   position: fixed;

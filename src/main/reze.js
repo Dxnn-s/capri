@@ -37,7 +37,7 @@ function settings(cfg = {}) {
     runtime: `${origin.replace(/^http/, 'ws')}/ws`,
     key: String(process.env.CAPRI_BRAIN_KEY || cfg.brainKey || 'reze'),
     token: String(process.env.CAPRI_RUNTIME_TOKEN || cfg.runtimeToken || '').trim(),
-    model: String(process.env.CAPRI_MODEL || cfg.model || 'reze'),
+    model: String(process.env.CAPRI_MODEL || cfg.model || 'capri'), // the skin on the desk; 'reze' to talk to her as herself
     voice: String(process.env.CAPRI_VOICE || cfg.voice || 'capri'),
   };
 }

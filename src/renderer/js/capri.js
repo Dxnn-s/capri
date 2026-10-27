@@ -7,6 +7,7 @@
 
 import { SpriteRenderer, SPRITE } from './sprite.js';
 import { ACTS, NEUTRAL, Player } from './acting.js';
+import { Life, Spring } from './life.js';
 import { sleep, rand, pick, clamp, lerp, ease, tween, reducedMotion, today } from './util.js';
 
 const ON_TWOS = 1000 / 12;
@@ -48,6 +49,9 @@ export class Capri {
     this.possessWindows = true; // tray: "Possess my windows"
     this.focus = false;   // a focus round is on (her pomodoro): she stays put, awake, and doesn't gaze off
     this.dragging = false;
+    this.life = new Life(); // the idle life under every drawing (life.js)
+    this.gliding = null;    // { vx, vy } while a spring glide moves her
+    this.poses = null;      // the show's own drawings for the beats (poses.js), set by app.js
 
     this.p = {
       seed: 0, boil: 0.9, hair: 0, head: 0, mane: 0, armL: 0, armR: 0, longL: 1, longR: 1, sit: 0, kickL: 0, kickR: 0,
@@ -331,6 +335,24 @@ export class Capri {
       }
     }
     const pose = { ...NEUTRAL, ...base, ...act };
+    // the life layer: breath, a weight shift, a glance, the mane lagging a move
+    if (this.dragging || reducedMotion.matches) this.life.reset();
+    else {
+      const alive = this.life.step(now, this.pos, { asleep: this.mode === 'sleep', moving: Boolean(this.gliding) });
+      pose.bob += alive.bob;
+      pose.hair += alive.hair;
+      pose.tilt += alive.tilt;
+      pose.head += alive.head;
+      pose.mane += alive.mane;
+      if (this.gliding) {
+        // mid-glide: the drawing smears along the way she goes, the mane blows back with speed
+        const speed = Math.hypot(alive.vx, alive.vy);
+        pose.smear = [clamp(-alive.vx * 0.02, -26, 26) * this.facing, clamp(-alive.vy * 0.02, -26, 26)];
+        pose.mane += Math.min(0.45, speed * 0.0005);
+        pose.armL += Math.min(0.5, speed * 0.0004);
+        pose.armR += Math.min(0.5, speed * 0.0004);
+      }
+    }
     if (this.mode === 'sleep' && this.stance === 'sit' && !act) {
       Object.assign(pose, { head: 0.12, mane: -0.1, kickL: 0.03, kickR: 0.03, armL: -0.45, armR: -0.45 }); // dozing on the ledge
     }
@@ -990,8 +1012,76 @@ export class Capri {
     await sleep(ON_ONES);
     p.silAmount = 0;
     this.fx.burst(toHead.x, toHead.y + 60 * s, { count: 10, power: 0.55, spread: 110 * s });
-    if (stance === 'sit') this.perform('plop');
+    if (stance === 'sit') {
+      // the beat: the show's own sitting drawing snaps in whole for four drawings on twos,
+      // smeared down into the seat, then the rig takes over with the plop
+      if (this.poses?.has('sit')) {
+        const seatAt = { x: to.x, y: to.y - (SPRITE.feet.y - SPRITE.hip) * s };
+        try {
+          this.canvas.style.visibility = 'hidden';
+          this.poses.show('sit', { at: seatAt, scale: s, facing, smear: [0, -28 * s] });
+          await sleep(ON_TWOS);
+          this.poses.show('sit', { at: seatAt, scale: s, facing });
+          await sleep(ON_TWOS * 3);
+        } finally {
+          this.poses.hide();
+          this.canvas.style.visibility = '';
+        }
+      }
+      this.perform('plop');
+    }
     await tween(p, { glitch: 0, split: 0 }, 220, ease.out);
+  }
+
+  // A short move without the teleport: springs carry her there (the body leans into it, the
+  // mane trails and swings back), and she lands on a hard snap. Standing only; anything else,
+  // or a long way, goes by teleport.
+  async glide(to, { face = null } = {}) {
+    if (this.stowed) return;
+    const far = Math.hypot(to.x - this.pos.x, to.y - this.pos.y);
+    if (this.busy || this.dormant || this.stance !== 'stand' || far > this.view.w * 0.45 || reducedMotion.matches) {
+      return this.teleport(to, { face });
+    }
+    this.busy = true;
+    this.wake();
+    this.onTeleport?.('start');
+    this.stopPointing(); // what she was showing you does not come along
+    if (this.sky) this.endAct(false);
+    this.facing = face ?? (to.x < this.pos.x ? 1 : -1);
+    this.perform('hop');
+    const { w, h } = this.view;
+    const s = this.scale;
+    const side = 150 * s + 30;
+    const sx = new Spring({ k: 34, zeta: 0.66, value: this.pos.x, target: clamp(to.x, side, w - side) });
+    const sy = new Spring({ k: 48, zeta: 0.8, value: this.pos.y, target: clamp(to.y, SPRITE.height * s, h - 4) });
+    this.gliding = true;
+    let last = performance.now();
+    const t0 = last;
+    await new Promise((done) => {
+      let over = false;
+      const finish = () => { if (!over) { over = true; done(); } };
+      // the spring's own deadline, and a clock one in case frames stop (an occluded window)
+      const guard = setTimeout(finish, 2200);
+      const tick = (now) => {
+        if (over) return;
+        const dt = Math.min(0.05, (now - last) / 1000);
+        last = now;
+        sx.step(dt);
+        sy.step(dt);
+        // the overshoot stays on screen
+        this.pos = { x: clamp(sx.value, side, w - side), y: clamp(sy.value, SPRITE.height * s, h - 4) };
+        this.place();
+        if ((sx.settled && sy.settled) || now - t0 > 1800) { clearTimeout(guard); return finish(); }
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+    this.pos = { x: sx.target, y: sy.target };
+    this.gliding = null;
+    this.place();
+    this.perform('land');
+    this.voice.play('land', { soft: true });
+    await this.settle();
   }
 
   // Leave in a column of light, reappear somewhere else.
@@ -1488,15 +1578,20 @@ export class Capri {
   }
 
   // Show up next to the mouse pointer (used when Claude needs you).
-  async summon(cursor) {
+  // where her feet go to stand next to the cursor
+  besideCursor(cursor) {
     const { w, h } = this.view;
     const s = this.scale;
     const side = 150 * s + 30;
     const dx = cursor.x > w / 2 ? -260 : 260;
-    const to = {
+    return {
       x: clamp(cursor.x + dx, side, w - side),
       y: clamp(cursor.y + SPRITE.height * s * 0.45, SPRITE.height * s + 120, h - 6),
     };
+  }
+
+  async summon(cursor) {
+    const to = this.besideCursor(cursor);
     if (this.stance === 'stand' && Math.hypot(to.x - this.pos.x, to.y - this.pos.y) < 160) {
       this.facing = cursor.x < this.pos.x ? 1 : -1;
       return;
