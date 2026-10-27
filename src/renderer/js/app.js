@@ -567,8 +567,20 @@ async function boot() {
   // entrance: her face big in the corner says hi, then she dives down to her spot
   // (put away last time: she starts in her biochip)
   if (config.visible === false) capri.stowNow();
-  else if (intro) await capri.intro(capri.spot('post'));
-  else await capri.materialize(capri.spot('post'));
+  else if (intro) {
+    // her first words from the brain, if they are ready within a few seconds: said out loud on the
+    // "hi" of the intro, her face on the glass; later than that, they play when they come
+    const hello = await host.hello(7000).catch(() => null);
+    await capri.intro(capri.spot('post'), hello ? {
+      onHi: () => {
+        panel.say({ kind: 'info', face: 'laugh', badge: 'HI', line: hello.text, hold: Math.min(14000, 3000 + hello.text.length * 55) });
+        if (hello.audio) link.play(hello.audio); else voice.play('hello');
+      },
+    } : {});
+  } else {
+    await capri.materialize(capri.spot('post'));
+    host.hello(0).then((hello) => { if (hello) link.speak(hello.text, hello.audio); }).catch(() => {});
+  }
   const hooks = await host.hooksStatus();
   if (!config.welcomed || !hooks.installed) guide.welcome();
   else panel.say({ kind: 'info', line: pick(brain.t.online), hold: 4000 });

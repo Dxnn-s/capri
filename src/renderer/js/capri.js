@@ -1563,7 +1563,7 @@ export class Capri {
   // Her intro, when she starts: she grabs your screen by its edges, huge, says hi, then her hands
   // slip and she dives down to where she stands, and her body unfolds from her face (fx.intro).
   // `still`: no motion, it comes and goes where it is (Windows' animations off).
-  async intro(at, { label = 'hi', caption = 'PROJECT CAPRICORN', still = reducedMotion.matches } = {}) {
+  async intro(at, { label = 'hi', caption = 'PROJECT CAPRICORN', still = reducedMotion.matches, onHi = null } = {}) {
     const p = this.p;
     this.pos = { ...at };
     this.faceCenter();
@@ -1587,7 +1587,7 @@ export class Capri {
         else if (cue === 'grab') {
           this.voice.play('land'); // she slams into it
           this.voice.play('bolt');
-        } else if (cue === 'hi') this.voice.play('hello');
+        } else if (cue === 'hi') { if (onHi) onHi(); else this.voice.play('hello'); }
         else if (cue === 'slip') this.voice.play('teleport-out');
       },
     });

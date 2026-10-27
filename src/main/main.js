@@ -360,7 +360,7 @@ async function handleCue(cue) {
 // battery running low, too many windows). One at a time, never more than one
 // a minute, so she comments, not nags.
 let lastOwnLine = 0;
-let saidHello = false;
+let helloPromise = null; // { text, audio } once the brain has written and voiced her hello
 async function ownLine(occasion, { minGapMs = 60000 } = {}) {
   if (!overlay || Date.now() - lastOwnLine < minGapMs) return;
   lastOwnLine = Date.now();
@@ -376,6 +376,31 @@ async function ownLine(occasion, { minGapMs = 60000 } = {}) {
   }
 }
 
+// Her hello, written and voiced by the brain, fetched as soon as the app is up so it can land
+// on the intro's "hi" (Dennis: "what if she said hey when she covers the entire screen at
+// intro"). The first start of a day is the morning line: a greeting with the one thing that
+// matters today, which the brain knows from his calendars. CAPRI_QUIET=1 skips it.
+function fetchHello() {
+  if (process.env.CAPRI_QUIET) return Promise.resolve(null);
+  const today = new Date().toISOString().slice(0, 10);
+  const first = config.load().lastDeskDay !== today;
+  config.save({ lastDeskDay: today });
+  const occasion = first
+    ? 'first time at his desk today, you are grabbing his whole screen to say hi: one short excited greeting, then in the same breath the one thing that matters today if you know it (a class, an exam, something due); if nothing does, say it is a free one'
+    : 'you are grabbing his whole screen to say hi after a restart: one short excited greeting, as yourself';
+  lastOwnLine = Date.now();
+  return (async () => {
+    const text = String(await reze.chat(brain, {
+      model: pickModel(),
+      messages: [{ role: 'user', content: `(not him talking: ${occasion}. One line, out loud, as yourself.)` }],
+    }, null, AbortSignal.timeout(45000)) || '').trim();
+    if (!text) return null;
+    console.log('[capri] hello:', text.slice(0, 120));
+    const audio = await reze.speak(brain, text).catch(() => null);
+    return { text, audio };
+  })().catch((err) => { console.error('[capri] her hello failed:', err.message); return null; });
+}
+
 function relink() {
   brain = reze.settings(config.load());
   link?.stop();
@@ -386,18 +411,7 @@ function relink() {
     console.log(`[capri] ${new Date().toISOString().slice(11, 19)} brain ${linked ? 'linked' : 'away'}: ${brain.runtime}${why}`);
     rebuildTray();
     toOverlay({ kind: 'link', linked });
-    if (linked && !saidHello && !process.env.CAPRI_QUIET) {
-      saidHello = true;
-      // the first time today (Capri 1.6 has a morning summary): she comes up with what matters today,
-      // which the brain knows from his calendars; any other start is a plain hello
-      const today = new Date().toISOString().slice(0, 10);
-      const first = config.load().lastDeskDay !== today;
-      config.save({ lastDeskDay: today });
-      const occasion = first
-        ? 'first time at his desk today: greet him, and in the same breath say the one thing that matters today if you know it (a class, an exam, something due); if nothing does, say that it is a free one'
-        : 'you just came up on his desk after a start, excited to be back';
-      setTimeout(() => ownLine(occasion, { minGapMs: 0 }), 2500);
-    }
+
   });
   link.on('error', (err) => console.error('[capri] link:', err.message));
   link.start();
@@ -454,6 +468,16 @@ function registerIpc() {
   });
   // the overlay saw something about the machine worth a word from her
   ipcMain.on('brain:occasion', (_e, occasion) => { if (typeof occasion === 'string' && occasion.length < 200) ownLine(occasion, { minGapMs: 20 * 60000 }); });
+  // the overlay asks for her hello before the intro and waits up to `waitMs` for it; null when
+  // it is late (the overlay then plays it whenever it comes) or quiet
+  ipcMain.handle('brain:hello', async (_e, waitMs) => {
+    if (!helloPromise) return null;
+    const late = new Promise((r) => setTimeout(() => r(undefined), Math.max(0, Number(waitMs) || 0)));
+    const got = await Promise.race([helloPromise, late]);
+    if (got !== undefined) return got;
+    helloPromise.then((h) => { if (h) toOverlay({ kind: 'hello', ...h }); });
+    return null;
+  });
   ipcMain.handle('brain:status', () => ({ linked: Boolean(link?.linked), origin: brain.origin, model: pickModel(), voice: brain.voice }));
   // her voice for a line she wrote herself (a chat answer): mp3 as base64, or null
   ipcMain.handle('brain:voice', (_e, text) => reze.speak(brain, text).catch((err) => {
@@ -697,6 +721,7 @@ function main() {
     });
     globalShortcut.register('Control+Alt+C', () => toggleVisible());
     relink(); // the brain: cues in, chat and voice out
+    helloPromise = fetchHello(); // her first words, ready for the intro's "hi"
     screen.on('display-metrics-changed', fitOverlay);
     screen.on('display-added', () => { fitOverlay(); rebuildTray(); });
     screen.on('display-removed', () => { fitOverlay(); rebuildTray(); });

@@ -70,6 +70,7 @@ export class Link {
       case 'express': return this.express(cue.name);
       case 'speak': return this.speak(String(cue.text || ''), cue.audio);
       case 'speak-audio': return cue.audio ? this.play(cue.audio) : undefined; // the voice for the line shown just before
+      case 'hello': return this.speak(String(cue.text || ''), cue.audio); // her first words, when they came after the intro
       case 'stop': return this.stop();
       case 'listen':
       case 'model':

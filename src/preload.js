@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('host', {
   onChatDelta: on('chat:delta'),
   onCue: on('reze:cue'),
   brainStatus: () => ipcRenderer.invoke('brain:status'),
+  hello: (waitMs) => ipcRenderer.invoke('brain:hello', waitMs),
   occasion: (what) => ipcRenderer.send('brain:occasion', String(what)),
   voice: (text) => ipcRenderer.invoke('brain:voice', text),
   openOllama: () => ipcRenderer.send('chat:ollama'),
