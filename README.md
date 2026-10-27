@@ -35,6 +35,7 @@ npm test
 
 ## Versions
 
+- 0.6.1: the point at the sky (round 2, one of four kept).
 - 0.6.0: the first generated pose, the crouch (Nano Banana with show frames as references, one
   of four candidates kept), registered through tools/make-pose.py, which now keys a flat
   background out before the matte.
