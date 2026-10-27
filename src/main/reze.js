@@ -15,7 +15,7 @@ const EventEmitter = require('node:events');
 const DEFAULT_ORIGIN = 'https://win-kejvo9cld80.tail7557fd.ts.net';
 const RECONNECT_MIN_MS = 2000;
 const RECONNECT_MAX_MS = 30000;
-const PING_MS = 25000;
+const PING_MS = 10000; // the stage pings every 15 s; the runtime drops a silent peer after 30
 const CUE_EVENT = 'capri:cue'; // the same name brain-bridge's airi-push sends
 
 const MARKERS = {
@@ -185,9 +185,10 @@ class Link extends EventEmitter {
       }
     };
     ws.onerror = () => { /* onclose follows and schedules the retry */ };
-    ws.onclose = () => {
+    ws.onclose = (ev) => {
       clearInterval(this.ping);
       if (this.ws === ws) this.ws = null;
+      this.lastClose = { code: ev && ev.code, reason: String((ev && ev.reason) || '').slice(0, 80) };
       this.setLinked(false);
       this.later();
     };

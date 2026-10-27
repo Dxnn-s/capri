@@ -356,7 +356,8 @@ function relink() {
   link = new reze.Link({ url: brain.runtime, token: brain.token });
   link.on('cue', handleCue);
   link.on('state', ({ linked }) => {
-    console.log(`[capri] brain ${linked ? 'linked' : 'away'}: ${brain.runtime}`);
+    const why = !linked && link.lastClose ? ` (close ${link.lastClose.code} ${link.lastClose.reason})` : '';
+    console.log(`[capri] ${new Date().toISOString().slice(11, 19)} brain ${linked ? 'linked' : 'away'}: ${brain.runtime}${why}`);
     rebuildTray();
     overlay?.webContents.send('reze:cue', { kind: 'link', linked });
   });
@@ -637,6 +638,9 @@ function main() {
     screen.on('display-removed', () => { fitOverlay(); rebuildTray(); });
   });
 
+  app.on('before-quit', () => console.log(`[capri] ${new Date().toISOString().slice(11, 19)} quitting`));
+  process.on('exit', (code) => console.log(`[capri] exit ${code}`));
+  app.on('child-process-gone', (_e, d) => console.error('[capri] child process gone:', d.type, d.reason));
   app.on('will-quit', () => {
     globalShortcut.unregisterAll();
     windowWatch?.stop();
