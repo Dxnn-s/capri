@@ -35,6 +35,9 @@ npm test
 
 ## Versions
 
+- 0.4.0: the behaviors. The brain's move spots sit, peek, hide, possess, sleep, wake and
+  stroll (spring hops along the bottom); a drag released with speed is a throw (walls, air
+  drag, a bounce). `npm run desk` stops a running instance first. Debug routes drag and state.
 - 0.3.0: she answers as herself. The desk asks the brain for the `capri` model, a skin with
   its own soul, lean, memory and audit in the vault (brain-bridge `src/capri-skin.js`);
   Discord stays Reze. `CAPRI_MODEL=reze` talks to the brain as Reze instead.

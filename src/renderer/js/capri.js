@@ -1084,6 +1084,70 @@ export class Capri {
     await this.settle();
   }
 
+  // A stroll along the bottom of the screen: three to five hops, each a short spring step
+  // with the hop drawing, the mane trailing; a wall turns her around. Standing only.
+  async stroll(dir = 0, steps = 3 + Math.floor(Math.random() * 3)) {
+    if (this.stowed || this.busy || this.dormant || this.stance !== 'stand' || reducedMotion.matches) return false;
+    this.busy = true;
+    this.wake();
+    this.onTeleport?.('start');
+    this.stopPointing();
+    const { w } = this.view;
+    const s = this.scale;
+    const side = 150 * s + 30;
+    let d = dir || this.towardCenter();
+    // first, down to the floor if she floats
+    const floorY = this.floor;
+    for (let i = 0; i < steps; i++) {
+      let x = this.pos.x + d * rand(90, 140);
+      if (x < side || x > w - side) { d = -d; x = this.pos.x + d * rand(90, 140); }
+      x = clamp(x, side, w - side);
+      this.facing = d < 0 ? 1 : -1;
+      this.perform('hop');
+      const sx = new Spring({ k: 70, zeta: 0.85, value: this.pos.x, target: x });
+      const sy = new Spring({ k: 60, zeta: 0.9, value: this.pos.y, target: floorY });
+      this.gliding = true;
+      let last = performance.now();
+      const t0 = last;
+      await new Promise((done) => {
+        let over = false;
+        const finish = () => { if (!over) { over = true; done(); } };
+        const guard = setTimeout(finish, 900);
+        const tick = (now) => {
+          if (over) return;
+          const dt = Math.min(0.05, (now - last) / 1000);
+          last = now;
+          sx.step(dt);
+          sy.step(dt);
+          this.pos = { x: sx.value, y: sy.value };
+          this.place();
+          if ((sx.settled && sy.settled) || now - t0 > 600) { clearTimeout(guard); return finish(); }
+          requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      this.pos = { x, y: floorY };
+      this.place();
+      await sleep(ON_TWOS * 2);
+    }
+    this.gliding = null;
+    this.perform('land');
+    this.voice.play('land', { soft: true });
+    await this.settle();
+    return true;
+  }
+
+  // Flung: dropped from a drag with speed. She flies with it, bounces off the sides of the
+  // screen, and lands where gravity puts her (a ledge on the way, or the floor), with a bounce.
+  toss(vx, vy) {
+    if (this.stance === 'fall') return;
+    this.fall();
+    this.vx = clamp(vx, -1800, 1800);
+    this.vy = clamp(vy, -1600, 1600);
+    this.facing = this.vx < 0 ? 1 : -1;
+    this.voice.play('rise', { soft: true });
+  }
+
   // Leave in a column of light, reappear somewhere else.
   async teleport(to, opts = {}) {
     if (this.stowed) return; // put away: she stays in her biochip
@@ -1409,23 +1473,50 @@ export class Capri {
     this.landingSpot = this.landing();
     this.setStance('fall');
     this.vy = 0;
+    this.vx = 0;
+    this.bounces = 0;
     this.lastFall = performance.now();
     if (reducedMotion.matches) this.updateFall(this.lastFall + 10000);
   }
 
   updateFall(now) {
-    const target = this.landingSpot;
     const dt = Math.min(0.05, (now - this.lastFall) / 1000);
     this.lastFall = now;
     this.vy = Math.min(this.vy + GRAVITY * dt, 1900);
+    if (this.vx) {
+      // thrown: sideways too, the air slows her, the walls send her back, and what is under
+      // her changes as she goes
+      this.vx *= Math.exp(-dt * 1.1);
+      if (Math.abs(this.vx) < 40) this.vx = 0;
+      const edge = 60;
+      let x = this.pos.x + this.vx * dt;
+      if (x < edge) { x = edge; this.vx = -this.vx * 0.55; this.voice.play('tick'); }
+      else if (x > this.view.w - edge) { x = this.view.w - edge; this.vx = -this.vx * 0.55; this.voice.play('tick'); }
+      this.pos.x = x;
+      this.facing = this.vx < 0 ? 1 : -1;
+      this.landingSpot = this.landing();
+    }
+    const target = this.landingSpot;
     const y = reducedMotion.matches ? target.y : this.pos.y + this.vy * dt;
     if (y < target.y) {
       this.pos.y = y;
       return;
     }
     this.pos.y = target.y;
-    this.setStance(target.stance, { perch: target.perch });
     const s = this.scale;
+    if (this.vx && this.bounces < 2 && this.vy > 900 && target.stance === 'stand') {
+      // a hard landing from a throw: she bounces once or twice, losing speed
+      this.bounces += 1;
+      this.vy = -this.vy * 0.38;
+      this.vx *= 0.6;
+      this.pos.y = target.y - 1;
+      this.fx.burst(this.pos.x, this.pos.y - 20 * s, { count: 8, power: 0.5, spread: 50 * s });
+      this.voice.play('land', { soft: true });
+      return;
+    }
+    this.vx = 0;
+    this.bounces = 0;
+    this.setStance(target.stance, { perch: target.perch });
     if (target.stance === 'sit') {
       this.perform('plop');
     } else {
@@ -1637,6 +1728,8 @@ export class Capri {
             x: clamp(down.pos.x + dx, 40, this.view.w - 40),
             y: clamp(down.pos.y + dy, SPRITE.height * this.scale * 0.5, this.floor),
           };
+          (down.trail ||= []).push({ x: this.pos.x, y: this.pos.y, t: performance.now() });
+          if (down.trail.length > 8) down.trail.shift();
           this.p.glitchSeed = Math.random() * 100;
           this.place();
         }
@@ -1647,12 +1740,15 @@ export class Capri {
     window.addEventListener('mouseup', () => {
       if (!down) return;
       const wasDragging = this.dragging;
+      const trail = down.trail; // how she was moving, for a fling
       down = null;
       this.dragging = false;
       if (wasDragging) {
         tween(this.p, { glitch: 0, split: 0 }, 200, ease.out);
         this.onTeleport?.('end');
-        this.drop();
+        const v = this.flingSpeed(trail);
+        if (v) this.toss(v.vx, v.vy);
+        else this.drop();
       } else {
         this.onClick?.();
       }
@@ -1660,6 +1756,20 @@ export class Capri {
   }
 
   // Let go of her: onto a ledge if her hips are right at one, otherwise she falls.
+  // How fast she was being dragged over the last tenth of a second: { vx, vy } px/s when it
+  // reads as a fling, else null (a plain let-go).
+  flingSpeed(trail) {
+    if (!trail || trail.length < 3) return null;
+    const last = trail[trail.length - 1];
+    let first = trail[0];
+    for (const p of trail) { if (last.t - p.t <= 120) { first = p; break; } }
+    const dt = (last.t - first.t) / 1000;
+    if (dt <= 0.015) return null;
+    const vx = (last.x - first.x) / dt;
+    const vy = (last.y - first.y) / dt;
+    return Math.hypot(vx, vy) > 700 ? { vx, vy } : null;
+  }
+
   drop() {
     const s = this.scale;
     const hip = this.pos.y - (SPRITE.feet.y - SPRITE.hip) * s;

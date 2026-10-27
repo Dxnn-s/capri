@@ -574,6 +574,28 @@ async function debugHandler(route, body) {
     }
     return { ok: true };
   }
+  if (route === 'state') {
+    // where she is and what she is doing, from the renderer (app.js exposes it in --dev)
+    const state = await overlay.webContents.executeJavaScript('window.__capriState ? window.__capriState() : null');
+    return { ok: true, state };
+  }
+  if (route === 'drag') {
+    // a drag of the pointer over the overlay: down at `from`, `steps` moves over `ms`, up at `to`
+    const from = { x: Math.round(body.from.x), y: Math.round(body.from.y) };
+    const to = { x: Math.round(body.to.x), y: Math.round(body.to.y) };
+    const steps = Math.max(2, Number(body.steps) || 8);
+    const ms = Math.max(20, Number(body.ms) || 160);
+    const pause = (t) => new Promise((r) => setTimeout(r, t));
+    overlay.webContents.sendInputEvent({ type: 'mouseMove', ...from });
+    overlay.webContents.sendInputEvent({ type: 'mouseDown', button: 'left', clickCount: 1, ...from });
+    for (let i = 1; i <= steps; i++) {
+      const k = i / steps;
+      overlay.webContents.sendInputEvent({ type: 'mouseMove', x: Math.round(from.x + (to.x - from.x) * k), y: Math.round(from.y + (to.y - from.y) * k), buttons: 1 });
+      await pause(ms / steps);
+    }
+    overlay.webContents.sendInputEvent({ type: 'mouseUp', button: 'left', clickCount: 1, ...to });
+    return { ok: true };
+  }
   if (route === 'type') {
     // typing into the overlay (her chat), and Enter if asked
     if (body.text) await overlay.webContents.insertText(body.text);

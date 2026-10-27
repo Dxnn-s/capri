@@ -2,7 +2,8 @@
 // (the main process turns them into cues, src/main/reze.js); this is where each
 // becomes something she does on the desk.
 //
-//   move    "[bridge-move] here"      she teleports next to the cursor (the brain needs you)
+//   move    "[bridge-move] here"      she teleports next to the cursor (the brain needs you);
+//           sit, peek, hide, possess, sleep, wake, stroll are the behaviors (0.4.0)
 //   express "[bridge-express] smile"  a face and a short act, from the stage's vocabulary
 //   speak   "[bridge-speak] line"     she says it: the panel shows it, her voice plays it
 //   stop    "[bridge-stop]"           she shuts up
@@ -115,6 +116,26 @@ export class Link {
       }
       capri.perform('curious', capri.towardCenter());
       return;
+    }
+    // the behaviors (0.4.0): where she goes is sometimes what she does
+    switch (spot) {
+      case 'sit': {
+        const seat = capri.pickSeat();
+        if (seat) await capri.sitOn(seat);
+        else await capri.teleport(capri.spot('post'), { face: capri.towardCenter() });
+        return;
+      }
+      case 'peek': return capri.peek();
+      case 'hide': return capri.canPossess() ? capri.possess() : capri.peek(pick(['left', 'right']));
+      case 'possess': {
+        if (!capri.canPossess()) { const seat = capri.pickSeat(); if (seat) await capri.sitOn(seat); }
+        if (capri.canPossess()) await capri.possess();
+        return;
+      }
+      case 'sleep': capri.setMode('sleep'); return;
+      case 'wake': capri.perform('hop'); return;
+      case 'stroll': return capri.stroll();
+      default: break;
     }
     const { w } = capri.view;
     const s = capri.scale;

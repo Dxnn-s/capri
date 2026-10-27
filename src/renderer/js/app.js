@@ -383,6 +383,8 @@ async function boot() {
     panel.say({ kind: 'info', line: t.end, hold: 5000 });
   };
 
+  // --dev: her state for the debug routes (scripts/..., tests on the desk)
+  window.__capriState = () => ({ pos: { ...capri.pos }, stance: capri.stance, busy: capri.busy, mode: capri.mode, facing: capri.facing, dormant: capri.dormant, stowed: capri.stowed, wins: capri.windows.wins.map((w) => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) });
   host.onClaudeEvent((evt) => brain.handle(evt));
   host.onWindows((data) => {
     capri.setWindows(data);
@@ -430,6 +432,14 @@ async function boot() {
       case 'glide': // --dev: the spring move to a point
         if (Number.isFinite(cmd.x) && Number.isFinite(cmd.y)) capri.glide({ x: cmd.x, y: cmd.y });
         break;
+      case 'pose': { // --dev: one of the show drawings, whole, for two seconds where she stands
+        if (!poses.has(cmd.pose)) break;
+        const at = cmd.pose === 'sit' ? { x: capri.pos.x, y: capri.pos.y - 186 * capri.scale } : { ...capri.pos };
+        capri.canvas.style.visibility = 'hidden';
+        poses.show(cmd.pose, { at, scale: capri.scale, facing: capri.facing });
+        setTimeout(() => { poses.hide(); capri.canvas.style.visibility = ''; }, cmd.ms || 2000);
+        break;
+      }
       case 'sit': { // --dev: onto a window she could sit on
         const seat = capri.pickSeat();
         if (seat) capri.sitOn(seat);
