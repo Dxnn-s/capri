@@ -35,6 +35,7 @@ npm test
 
 ## Versions
 
+- 0.5.1: the first start of a day is the morning line (what matters today, from the brain).
 - 0.5.0: her own words. She says hello in her voice when she comes up on the desk, and
   comments on the machine (the battery running low, too many windows) with a line the brain
   writes as her, at most one every twenty minutes. `CAPRI_QUIET=1` keeps her quiet at start.

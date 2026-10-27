@@ -20,6 +20,7 @@ const DEFAULTS = {
   brainKey: '',      // the gateway's bearer (empty: 'reze'); CAPRI_BRAIN_KEY overrides
   runtimeToken: '',  // the runtime socket's token, when it wants one; CAPRI_RUNTIME_TOKEN overrides
   voice: '',         // the gateway voice for her lines (empty: 'capri'); CAPRI_VOICE overrides
+  lastDeskDay: '',   // the last day she came up on the desk (the first start of a day gets the morning line)
   notifications: true, // system notifications for Claude updates
   focusCustom: { work: 30, rest: 5, long: 15, rounds: 4 }, // focus mode, your own times (minutes)
 };

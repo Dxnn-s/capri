@@ -388,7 +388,15 @@ function relink() {
     toOverlay({ kind: 'link', linked });
     if (linked && !saidHello && !process.env.CAPRI_QUIET) {
       saidHello = true;
-      setTimeout(() => ownLine('you just came up on his desk after a start, excited to be back', { minGapMs: 0 }), 2500);
+      // the first time today (Capri 1.6 has a morning summary): she comes up with what matters today,
+      // which the brain knows from his calendars; any other start is a plain hello
+      const today = new Date().toISOString().slice(0, 10);
+      const first = config.load().lastDeskDay !== today;
+      config.save({ lastDeskDay: today });
+      const occasion = first
+        ? 'first time at his desk today: greet him, and in the same breath say the one thing that matters today if you know it (a class, an exam, something due); if nothing does, say that it is a free one'
+        : 'you just came up on his desk after a start, excited to be back';
+      setTimeout(() => ownLine(occasion, { minGapMs: 0 }), 2500);
     }
   });
   link.on('error', (err) => console.error('[capri] link:', err.message));
