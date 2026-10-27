@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 const {
   app, BrowserWindow, Tray, Menu, ipcMain, screen, protocol, net, shell, globalShortcut, nativeImage,
-  clipboard, ClipboardItem, Notification, dialog,
+  clipboard, ClipboardItem, Notification, dialog, powerMonitor,
 } = require('electron');
 
 const config = require('./config');
@@ -113,7 +113,10 @@ function createOverlay() {
   // always shown: put away, she's still there as her biochip in the corner
   overlay.once('ready-to-show', () => overlay.showInactive());
   overlay.webContents.on('render-process-gone', (_e, details) => {
-    console.error('[capri] renderer gone:', details.reason);
+    // the renderer died (the GPU after a sleep, out of memory): she is gone from the desk
+    // though the app is up. Reload her; the page skips the intro on a reload.
+    console.error('[capri] renderer gone:', details.reason, '(reloading her)');
+    setTimeout(() => { if (overlay && !overlay.isDestroyed()) overlay.webContents.reloadIgnoringCache(); }, 800);
   });
   if (DEV) {
     overlay.webContents.on('console-message', (e) => {
@@ -122,6 +125,33 @@ function createOverlay() {
     });
     if (process.env.CAPRI_DEVTOOLS) overlay.webContents.openDevTools({ mode: 'detach' });
   }
+}
+
+// Back from sleep or the lock screen (2026-10-27, Dennis: "when i close my computer for a
+// couple hours and come back, i can't see her anymore even though the app should be up"):
+// the overlay is put back where it belongs and on top, and if the page inside no longer
+// answers, it is reloaded.
+let wakeTimer = null;
+function afterWake(why) {
+  clearTimeout(wakeTimer);
+  wakeTimer = setTimeout(async () => {
+    if (!overlay || overlay.isDestroyed()) return;
+    console.log(`[capri] ${new Date().toISOString().slice(11, 19)} back from ${why}: checking her`);
+    fitOverlay();
+    overlay.setAlwaysOnTop(true, 'screen-saver');
+    if (config.load().visible !== false) overlay.showInactive();
+    let alive = false;
+    try {
+      alive = await Promise.race([
+        overlay.webContents.executeJavaScript('typeof window.__capriAlive === "function" ? window.__capriAlive() : true'),
+        new Promise((r) => setTimeout(() => r(false), 4000)),
+      ]);
+    } catch { alive = false; }
+    if (!alive) {
+      console.warn('[capri] she did not answer after the wake; reloading her');
+      overlay.webContents.reloadIgnoringCache();
+    }
+  }, 2500);
 }
 
 function sendCommand(name, payload = {}) {
@@ -723,6 +753,8 @@ function main() {
     relink(); // the brain: cues in, chat and voice out
     helloPromise = fetchHello(); // her first words, ready for the intro's "hi"
     screen.on('display-metrics-changed', fitOverlay);
+    powerMonitor.on('resume', () => afterWake('sleep'));
+    powerMonitor.on('unlock-screen', () => afterWake('the lock screen'));
     screen.on('display-added', () => { fitOverlay(); rebuildTray(); });
     screen.on('display-removed', () => { fitOverlay(); rebuildTray(); });
   });

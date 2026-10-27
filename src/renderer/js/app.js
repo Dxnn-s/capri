@@ -27,6 +27,10 @@ function loadImage(src) {
 // close-ups of her for the cut-ins, frames of the show (tools/build-cutins.py)
 const CUTINS = ['grin', 'laugh', 'eyes', 'many', 'look', 'point'];
 
+// after a reload (a lost GPU context, a renderer brought back): no intro, no hello again
+const RELOADED = (() => { try { return sessionStorage.getItem('capri-reloaded') === '1'; } catch { return false; } })();
+try { sessionStorage.setItem('capri-reloaded', '1'); } catch { /* no storage */ }
+
 async function boot() {
   const [config, image, intro, ...cutins] = await Promise.all([
     host.getConfig(),
@@ -566,8 +570,19 @@ async function boot() {
 
   // entrance: her face big in the corner says hi, then she dives down to her spot
   // (put away last time: she starts in her biochip)
+  // is she drawing? the main process asks this after a sleep (window.__capriAlive)
+  let lastFrameAt = performance.now();
+  const gl = document.getElementById('sprite');
+  gl.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    console.error('[capri] the GL context was lost; reloading her');
+    setTimeout(() => location.reload(), 500);
+  });
+  capri.onMove = ((prev) => (h) => { lastFrameAt = performance.now(); prev?.(h); })(capri.onMove);
+  window.__capriAlive = () => performance.now() - lastFrameAt < 15000;
+
   if (config.visible === false) capri.stowNow();
-  else if (intro) {
+  else if (intro && !RELOADED) {
     // her first words from the brain, if they are ready within a few seconds: said out loud on the
     // "hi" of the intro, her face on the glass; later than that, they play when they come
     const hello = await host.hello(9000).catch(() => null); // measured: the brain and her voice take about 11 s from launch, the intro reaches "hi" 3 s in
@@ -579,7 +594,7 @@ async function boot() {
     } : {});
   } else {
     await capri.materialize(capri.spot('post'));
-    host.hello(0).then((hello) => { if (hello) link.speak(hello.text, hello.audio); }).catch(() => {});
+    if (!RELOADED) host.hello(0).then((hello) => { if (hello) link.speak(hello.text, hello.audio); }).catch(() => {});
   }
   const hooks = await host.hooksStatus();
   if (!config.welcomed || !hooks.installed) guide.welcome();

@@ -35,6 +35,8 @@ npm test
 
 ## Versions
 
+- 0.5.3: she survives the lid. After sleep or the lock screen the overlay is put back on top and
+  checked; a page that stopped drawing, a lost GL context or a dead renderer reloads her (no intro, no hello again).
 - 0.5.2: her hello lands on the intro's "hi", her face on the glass, when the brain has it ready in time.
 - 0.5.1: the first start of a day is the morning line (what matters today, from the brain).
 - 0.5.0: her own words. She says hello in her voice when she comes up on the desk, and
