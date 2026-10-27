@@ -35,6 +35,7 @@ npm test
 
 ## Versions
 
+- 0.6.3: make-pose takes `--height` (the figure's height in sprite px) and cuts at full resolution.
 - 0.6.2: the cackle (retry with the show's laugh frames only; one of four kept).
 - 0.6.1: the point at the sky (round 2, one of four kept).
 - 0.6.0: the first generated pose, the crouch (Nano Banana with show frames as references, one

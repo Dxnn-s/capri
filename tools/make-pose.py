@@ -1,6 +1,6 @@
 """Register a generated (or cut) drawing of Capri as a key pose for poses.js.
 
-    python tools/make-pose.py <image.png> <name> [--anchor feet|seat|head] [--face-width 49]
+    python tools/make-pose.py <image.png> <name> [--anchor feet|seat|head] [--face-width 49 | --height 500]
 
 Mattes her out with the palette rule from cut-pose.py (a transparent PNG passes through),
 scales her so the face plate is the sprite's size (49 px wide on capri-full.png), writes
@@ -85,6 +85,9 @@ def main():
     src, name = a[0], a[1]
     kind = a[a.index('--anchor') + 1] if '--anchor' in a else 'feet'
     want = int(a[a.index('--face-width') + 1]) if '--face-width' in a else SPRITE_FACE_WIDTH
+    # --height H: scale the whole figure to H sprite pixels tall instead of matching the face
+    # plate (the plate finder is fooled by green hands near the face); her standing rig is 420
+    height = int(a[a.index('--height') + 1]) if '--height' in a else None
     img = Image.open(src).convert('RGBA')
     if img.getchannel('A').getextrema()[0] == 255:
         # an opaque render on a flat background: key the background out from the corners
@@ -95,15 +98,19 @@ def main():
         img, _ = cut(str(tmp))
         tmp.unlink(missing_ok=True)
     rgba = np.asarray(img)
-    fw = face_width(rgba)
-    if not fw:
-        raise SystemExit('no face plate found (no green near the top)')
-    k = want / fw
+    if height:
+        fw = None
+        k = height / img.height
+    else:
+        fw = face_width(rgba)
+        if not fw:
+            raise SystemExit('no face plate found (no green near the top)')
+        k = want / fw
     out = img.resize((max(1, round(img.width * k)), max(1, round(img.height * k))), Image.LANCZOS)
     ax, ay = anchor_for(np.asarray(out)[..., 3], kind)
     dst = ROOT / 'assets' / 'capri' / f'pose-{name}.png'
     out.quantize(colors=96, method=Image.Quantize.FASTOCTREE, dither=Image.Dither.NONE).save(dst, optimize=True)
-    print(f'wrote {dst} {out.size} (face plate {fw}px -> {want}px, x{k:.2f})')
+    print(f'wrote {dst} {out.size} (' + (f'{height}px tall' if height else f'face plate {fw}px -> {want}px') + f', x{k:.2f})')
     print(f"  {name}: {{ file: 'pose-{name}.png', anchor: {{ x: {ax}, y: {ay} }} }},  // anchor: {kind}")
 
 

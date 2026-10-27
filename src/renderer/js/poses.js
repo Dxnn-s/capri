@@ -14,7 +14,7 @@ export const POSES = {
   // generated (round 2 variant 2): the point at the sky, mane streaming back
   point: { file: 'pose-point.png', anchor: { x: 166, y: 536 } },
   // generated (round 2 retry, show laugh frames as references, variant 3): the cackle, mane exploded
-  cackle: { file: 'pose-cackle.png', anchor: { x: 151, y: 499 } },
+  cackle: { file: 'pose-cackle.png', anchor: { x: 152, y: 498 } },
 };
 
 export class PoseLayer {
