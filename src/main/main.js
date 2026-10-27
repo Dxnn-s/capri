@@ -395,8 +395,8 @@ function fetchHello() {
       messages: [{ role: 'user', content: `(not him talking: ${occasion}. One line, out loud, as yourself.)` }],
     }, null, AbortSignal.timeout(45000)) || '').trim();
     if (!text) return null;
-    console.log('[capri] hello:', text.slice(0, 120));
     const audio = await reze.speak(brain, text).catch(() => null);
+    console.log(`[capri] hello ready in ${Math.round(process.uptime())} s: ${text.slice(0, 120)}`);
     return { text, audio };
   })().catch((err) => { console.error('[capri] her hello failed:', err.message); return null; });
 }

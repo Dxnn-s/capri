@@ -570,7 +570,7 @@ async function boot() {
   else if (intro) {
     // her first words from the brain, if they are ready within a few seconds: said out loud on the
     // "hi" of the intro, her face on the glass; later than that, they play when they come
-    const hello = await host.hello(7000).catch(() => null);
+    const hello = await host.hello(9000).catch(() => null); // measured: the brain and her voice take about 11 s from launch, the intro reaches "hi" 3 s in
     await capri.intro(capri.spot('post'), hello ? {
       onHi: () => {
         panel.say({ kind: 'info', face: 'laugh', badge: 'HI', line: hello.text, hold: Math.min(14000, 3000 + hello.text.length * 55) });
