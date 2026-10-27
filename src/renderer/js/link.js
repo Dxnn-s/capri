@@ -54,6 +54,8 @@ export class Link {
     this.host = host;
     this.brain = brain;
     this.audio = null;
+    this.audioUrl = null;
+    this.mouth = null;
     this.home = null; // where she was before the brain moved her ("back")
     this.linked = false;
   }
@@ -64,7 +66,8 @@ export class Link {
       case 'link': return this.onLink(cue.linked);
       case 'move': return this.move(cue.spot);
       case 'express': return this.express(cue.name);
-      case 'speak': return this.speak(cue.text, cue.audio);
+      case 'speak': return this.speak(String(cue.text || ''), cue.audio);
+      case 'speak-audio': return cue.audio ? this.play(cue.audio) : undefined; // the voice for the line shown just before
       case 'stop': return this.stop();
       case 'listen':
       case 'model':
@@ -152,20 +155,37 @@ export class Link {
     if (audio) this.play(audio);
   }
 
+  // mp3 bytes as base64 -> a blob url: the overlay's CSP allows blob: media, not data:
   play(base64) {
     this.stop();
-    const el = new Audio(`data:audio/mpeg;base64,${base64}`);
+    let url;
+    try {
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      url = URL.createObjectURL(new Blob([bytes], { type: 'audio/mpeg' }));
+    } catch {
+      return;
+    }
+    const el = new Audio(url);
     el.volume = this.voice.muted ? 0 : this.voice.volume;
     this.audio = el;
+    this.audioUrl = url;
     const talk = () => { if (this.audio === el && !this.capri.busy) this.capri.perform('talk'); };
-    el.addEventListener('play', talk);
-    el.addEventListener('ended', () => { if (this.audio === el) this.audio = null; });
-    // her mouth keeps going as long as the line does (the talk act is short)
-    const mouth = setInterval(() => { if (this.audio !== el || el.ended || el.paused) clearInterval(mouth); else talk(); }, 700);
-    el.play().catch(() => { clearInterval(mouth); this.audio = null; });
+    // her mouth keeps going as long as the line does (the talk act is short): the tick starts
+    // once playback does, since `paused` stays true until then
+    el.addEventListener('play', () => {
+      talk();
+      clearInterval(this.mouth);
+      this.mouth = setInterval(() => { if (this.audio !== el || el.ended || el.paused) clearInterval(this.mouth); else talk(); }, 700);
+    });
+    el.addEventListener('ended', () => { if (this.audio === el) this.stop(); });
+    el.play().catch(() => { if (this.audio === el) this.stop(); });
   }
 
   stop() {
+    clearInterval(this.mouth);
+    if (this.audioUrl) { try { URL.revokeObjectURL(this.audioUrl); } catch { /* gone */ } this.audioUrl = null; }
     if (!this.audio) return;
     try { this.audio.pause(); } catch { /* already done */ }
     this.audio = null;

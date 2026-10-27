@@ -289,7 +289,7 @@ async function boot() {
   brain.onTalk = () => chat.start();
   // The brain's cues (link.js): what Reze pushes over the runtime socket, acted out here.
   const link = new Link({ capri, panel, voice, host, brain });
-  host.onCue((cue) => link.handle(cue));
+  host.onCue((cue) => link.handle(cue).catch((err) => console.error('[capri] cue failed:', err)));
   chat.onAnswer = (text) => link.say(text);
   // the first Claude Code event that ever reaches her: so you know it worked
   brain.linked = config.linked;

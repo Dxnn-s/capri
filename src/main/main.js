@@ -21,7 +21,7 @@ const DEV = process.argv.includes('--dev');
 const PORT = Number(process.env.CAPRI_PORT) || 47823;
 const SOUND_EXT = /\.(mp3|wav|ogg|m4a)$/i;
 // the brain: where chat, her voice and her cues come from (src/main/reze.js)
-let brain = reze.settings(config.load());
+let brain = reze.settings(); // from the environment now; her config joins in once the app is up (relink)
 let link = null; // the runtime socket, once the app is up
 
 protocol.registerSchemesAsPrivileged([
@@ -336,18 +336,21 @@ async function refreshModels() {
 
 // A cue from the brain (or the tray, or a local script): the overlay acts it
 // out. A line to speak gets its audio here first, so it arrives with its voice.
+function toOverlay(cue) {
+  if (overlay && !overlay.isDestroyed() && !overlay.webContents.isDestroyed()) overlay.webContents.send('reze:cue', cue);
+}
+
 async function handleCue(cue) {
   if (!cue || !overlay) return;
   console.log('[capri] cue:', JSON.stringify(cue).slice(0, 160));
+  toOverlay(cue); // the line shows at once; its voice follows when the gateway has made it
   if (cue.kind === 'speak') {
     const audio = await reze.speak(brain, cue.text).catch((err) => {
       console.error('[capri] her voice failed:', err.message);
       return null;
     });
-    overlay.webContents.send('reze:cue', { ...cue, audio });
-    return;
+    if (audio) toOverlay({ kind: 'speak-audio', audio });
   }
-  overlay.webContents.send('reze:cue', cue);
 }
 
 function relink() {
@@ -359,7 +362,7 @@ function relink() {
     const why = !linked && link.lastClose ? ` (close ${link.lastClose.code} ${link.lastClose.reason})` : '';
     console.log(`[capri] ${new Date().toISOString().slice(11, 19)} brain ${linked ? 'linked' : 'away'}: ${brain.runtime}${why}`);
     rebuildTray();
-    overlay?.webContents.send('reze:cue', { kind: 'link', linked });
+    toOverlay({ kind: 'link', linked });
   });
   link.on('error', (err) => console.error('[capri] link:', err.message));
   link.start();

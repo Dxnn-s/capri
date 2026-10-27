@@ -9,6 +9,7 @@ const REMEMBER = 12; // messages of this conversation she keeps in mind
 const LANGUAGE = { fr: 'French', en: 'English', es: 'Spanish', pt: 'Brazilian Portuguese', ru: 'Russian' };
 const STAY_MS = 10 * 60 * 1000; // no wandering off mid-conversation
 const LOADING_AFTER_MS = 5000;
+let turnSeq = 0; // ids for the answers in flight
 const CLOSE_TAG = /\[\[\s*close\s*:?\s*([^\]]*)\]\]/i; // [[close: AM Music]] at the end of her answer
 // "close", "shut down", "ferme", "quitte", "cierra", "fecha", "закрой"... in any of her languages
 const CLOSE_ASK = /\b(close|shut|quit|kill|exit)|ferm|quitt|coupe|arr[êe]t|cierr|cerra|fech|закр|выключ/i;
@@ -107,7 +108,7 @@ export class Chat {
 
   async send(text) {
     if (this.turn || !this.open) return;
-    const id = Date.now();
+    const id = ++turnSeq;
     this.turn = id;
     this.answer = '';
     this.history.push({ role: 'user', content: text });

@@ -15,6 +15,7 @@ const EventEmitter = require('node:events');
 const DEFAULT_ORIGIN = 'https://win-kejvo9cld80.tail7557fd.ts.net';
 const RECONNECT_MIN_MS = 2000;
 const RECONNECT_MAX_MS = 30000;
+const CHAT_TIMEOUT_MS = 120000; // the brain's longest turn, with its fillers
 const PING_MS = 10000; // the stage pings every 15 s; the runtime drops a silent peer after 30
 const CUE_EVENT = 'capri:cue'; // the same name brain-bridge's airi-push sends
 
@@ -142,7 +143,8 @@ class Link extends EventEmitter {
   }
 
   connect() {
-    if (this.closed || !this.WS) return;
+    if (this.closed) return;
+    if (!this.WS) { this.emit('error', new Error('no WebSocket in this runtime')); return; }
     let ws;
     try {
       ws = new this.WS(this.url);
@@ -152,6 +154,7 @@ class Link extends EventEmitter {
     }
     this.ws = ws;
     ws.onopen = () => {
+      if (this.ws !== ws) return; // a socket already replaced
       this.wait = RECONNECT_MIN_MS;
       if (this.token) this.send({ type: 'module:authenticate', data: { token: this.token } });
       else this.announce();
@@ -160,6 +163,7 @@ class Link extends EventEmitter {
       this.ping = setInterval(() => this.send({ type: 'transport:connection:heartbeat', data: { kind: 'ping', message: 'ping', at: Date.now() } }), PING_MS);
     };
     ws.onmessage = (ev) => {
+      if (this.ws !== ws) return;
       const frame = unwrap(ev.data);
       if (!frame || !frame.type) return;
       const d = frame.data || {};
@@ -231,14 +235,22 @@ async function models(s) {
  * newest user line matters; the rest of `messages` rides along for shape.
  */
 async function chat(s, { model, messages }, onDelta, signal) {
+  const bound = AbortSignal.timeout(CHAT_TIMEOUT_MS);
   const res = await fetch(`${s.gateway}/chat/completions`, {
     method: 'POST',
     headers: headers(s),
     body: JSON.stringify({ model: model || s.model, messages, stream: true }),
-    signal,
+    signal: signal ? AbortSignal.any([signal, bound]) : bound,
   });
   if (res.status === 429) throw new Error('busy');
   if (!res.ok) throw await failure(res);
+  // a plain (non-stream) answer, should the gateway send one
+  if (!res.body || !/text\/event-stream/i.test(String(res.headers.get('content-type') || ''))) {
+    const j = await res.json().catch(() => null);
+    const t = String(j?.choices?.[0]?.message?.content || '');
+    if (t) onDelta?.(t);
+    return t;
+  }
   let text = '';
   let buf = '';
   const reader = res.body.getReader();
