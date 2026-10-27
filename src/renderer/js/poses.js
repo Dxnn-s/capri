@@ -9,6 +9,8 @@
 export const POSES = {
   // ep 2: cross-legged on the edge of the bed, mane filling the room; the anchor is her seat
   sit: { file: 'pose-sit.png', anchor: { x: 432, y: 552 } },
+  // generated (Nano Banana, show frames as references, round 1 variant 4): crouched, arms around her knees
+  crouch: { file: 'pose-crouch.png', anchor: { x: 196, y: 548 } },
 };
 
 export class PoseLayer {

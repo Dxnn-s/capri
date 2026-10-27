@@ -39,6 +39,25 @@ def face_width(rgba):
     return int(cols.max() - cols.min() + 1) if len(cols) else None
 
 
+def key_background(img, tol=28):
+    """Flood from the four corners over near-uniform background colour; those pixels go transparent."""
+    from scipy import ndimage
+    a = np.asarray(img).astype(np.int16)
+    rgb = a[..., :3]
+    corners = [rgb[0, 0], rgb[0, -1], rgb[-1, 0], rgb[-1, -1]]
+    bg = np.median(np.stack(corners), axis=0)
+    near = (np.abs(rgb - bg).max(axis=2) <= tol)
+    labels, n = ndimage.label(near)
+    keep = set(labels[0, 0:1].tolist() + labels[0, -1:].tolist() + labels[-1, 0:1].tolist() + labels[-1, -1:].tolist())
+    keep.discard(0)
+    mask = np.isin(labels, list(keep))
+    out = a.copy().astype(np.uint8)
+    out[..., 3] = np.where(mask, 0, 255)
+    # her ink is the same black as a black background: the keyed region stops at her edge,
+    # and the inside black stays because it is not connected to the corners
+    return Image.fromarray(out, 'RGBA')
+
+
 def anchor_for(alpha, kind):
     ys, xs = np.where(alpha > 128)
     if kind == 'head':
@@ -68,7 +87,13 @@ def main():
     want = int(a[a.index('--face-width') + 1]) if '--face-width' in a else SPRITE_FACE_WIDTH
     img = Image.open(src).convert('RGBA')
     if img.getchannel('A').getextrema()[0] == 255:
-        img, _ = cut(src)  # an opaque render: matte her out
+        # an opaque render on a flat background: key the background out from the corners
+        # first (so the black of a black background never counts as her ink), then matte
+        keyed = key_background(img)
+        tmp = Path(src).with_suffix('.keyed.png')
+        keyed.save(tmp)
+        img, _ = cut(str(tmp))
+        tmp.unlink(missing_ok=True)
     rgba = np.asarray(img)
     fw = face_width(rgba)
     if not fw:

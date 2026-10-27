@@ -35,6 +35,9 @@ npm test
 
 ## Versions
 
+- 0.6.0: the first generated pose, the crouch (Nano Banana with show frames as references, one
+  of four candidates kept), registered through tools/make-pose.py, which now keys a flat
+  background out before the matte.
 - 0.5.3: she survives the lid. After sleep or the lock screen the overlay is put back on top and
   checked; a page that stopped drawing, a lost GL context or a dead renderer reloads her (no intro, no hello again).
 - 0.5.2: her hello lands on the intro's "hi", her face on the glass, when the brain has it ready in time.
