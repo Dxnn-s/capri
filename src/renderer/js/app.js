@@ -400,7 +400,7 @@ async function boot() {
   };
 
   // --dev: her state for the debug routes (scripts/..., tests on the desk)
-  window.__capriState = () => ({ pos: { ...capri.pos }, stance: capri.stance, busy: capri.busy, mode: capri.mode, facing: capri.facing, dormant: capri.dormant, stowed: capri.stowed, wins: capri.windows.wins.map((w) => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) });
+  window.__capriState = () => ({ pos: { ...capri.pos }, stance: capri.stance, busy: capri.busy, mode: capri.mode, facing: capri.facing, dormant: capri.dormant, stowed: capri.stowed, resting: Boolean(capri.resting), act: capri.act ? capri.act.player.name : null, head: Math.round(capri.p.head * 1000) / 1000, wins: capri.windows.wins.map((w) => ({ id: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) });
   host.onClaudeEvent((evt) => brain.handle(evt));
   host.onWindows((data) => {
     capri.setWindows(data);
@@ -478,6 +478,12 @@ async function boot() {
         setTimeout(() => { poses.hide(); capri.canvas.style.visibility = ''; }, cmd.ms || 2000);
         break;
       }
+      case 'rest': // --dev: the crouch on her cels, as the wander would pick it (0.8.0)
+        capri.rest();
+        break;
+      case 'beat': // --dev: one idle beat, now
+        capri.nextBeat = 0;
+        break;
       case 'cels': { // --dev: loop a cel set where she stands, for `ms` (default 4 s)
         if (!poses.hasCels(cmd.cels)) break;
         capri.canvas.style.visibility = 'hidden';

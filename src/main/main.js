@@ -635,6 +635,15 @@ async function debugHandler(route, body = {}) {
     overlay.webContents.reloadIgnoringCache();
     return { ok: true };
   }
+  if (route === 'capture') {
+    // a frame of the overlay itself (her, over nothing), to captures/<name>.png (0.8.0)
+    const image = await overlay.webContents.capturePage();
+    const dir = path.join(app.isPackaged ? app.getPath('userData') : ROOT, 'captures');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, `${String(body.name || 'overlay').replace(/[^\w-]/g, '')}.png`);
+    fs.writeFileSync(file, image.toPNG());
+    return { ok: true, file, size: image.getSize() };
+  }
   if (route === 'testwin') {
     // plain windows to sit on, opened without stealing focus, by name (`id`, default "main");
     // each one opened goes in front of the others. { open: false } without an id closes them all.
