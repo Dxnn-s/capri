@@ -73,6 +73,9 @@ export class Capri {
     this.nextMove = now + rand(40000, 80000);
     this.nextGaze = now + rand(40000, 90000);
     this.nextShed = now + rand(3000, 8000);
+    this.nextBeat = now + rand(6000, 12000); // idle beats (0.8.0)
+    this.resting = null; // { until } while her crouch-idle cels play in place of the rig (0.8.0)
+    this.lastAct = null; // the last resolved act drawing, for the follow-through
     this.nextNotice = 0;
     this.peekUntil = 0;
     this.lastGlyph = 0;
@@ -304,6 +307,7 @@ export class Capri {
 
   drawFrame(now = performance.now()) {
     this.lastDraw = now;
+    if (this.resting && (now > this.resting.until || !this.canRest())) this.unrest();
     this.animate(now);
     this.sprite.draw(this.p);
     this.place();
@@ -326,6 +330,7 @@ export class Capri {
       const drawing = this.act.player.sample(now);
       if (drawing) {
         act = this.act.player.resolve(drawing.pose, this.facing);
+        this.lastAct = act;
         if (drawing.index !== this.act.index) {
           this.act.index = drawing.index;
           cue = drawing.cue;
@@ -338,7 +343,7 @@ export class Capri {
     // the life layer: breath, a weight shift, a glance, the mane lagging a move
     if (this.dragging || reducedMotion.matches) this.life.reset();
     else {
-      const alive = this.life.step(now, this.pos, { asleep: this.mode === 'sleep', moving: Boolean(this.gliding) });
+      const alive = this.life.step(now, this.pos, { asleep: this.mode === 'sleep', moving: Boolean(this.gliding), lookAt: this.lookAt() });
       pose.bob += alive.bob;
       pose.hair += alive.hair;
       pose.tilt += alive.tilt;
@@ -378,12 +383,31 @@ export class Capri {
     if (cue) this.onCue(cue);
   }
 
+  // Where his pointer pulls her head (sprite radians) while it is near, else null (0.8.0).
+  // A screen-right pointer turns the head screen-right: the sprite's own left is screen-left
+  // only when she faces as drawn, so the sign rides on `facing`.
+  lookAt() {
+    const m = this.mouse;
+    if (!m || this.pointing || this.resting || this.mode === 'sleep' || this.stance === 'fall') return null;
+    const h = this.head();
+    const dx = m.x - h.x;
+    const d = Math.hypot(dx, m.y - h.y);
+    if (d > 420 || d < 24) return null;
+    return clamp(dx / 260, -1, 1) * 0.16 * this.facing;
+  }
+
   behave(now) {
     if (this.stance === 'fall') {
       this.updateFall(now);
       return;
     }
-    if (this.busy || this.dragging) return;
+    if (this.busy || this.dragging || this.resting) return;
+
+    // idle beats (0.8.0): a small one-shot now and then, so the stance loop is not a metronome
+    if (this.mode === 'idle' && !this.act && !this.gliding && !this.focus && (this.stance === 'stand' || this.stance === 'sit') && now > this.nextBeat) {
+      this.nextBeat = now + rand(7000, 16000);
+      if (!reducedMotion.matches) this.perform(pick(this.stance === 'sit' ? ['shift', 'scan', 'fidget'] : ['shift', 'scan', 'stretch', 'fidget']), this.towardCenter());
+    }
 
     if (now > this.nextTwitch) {
       this.nextTwitch = now + rand(5000, 13000);
@@ -441,9 +465,38 @@ export class Capri {
     const seat = this.pickSeat();
     const r = Math.random();
     if (seat && r < 0.35) this.sitOn(seat);
-    else if (r < 0.6) this.peek();
-    else if (r < 0.85) this.teleport(this.spot('random'));
+    else if (r < 0.55) this.peek();
+    else if (r < 0.72 && this.rest()) return; // on the floor: she crouches, in the show's own cels
+    else if (r < 0.88) this.teleport(this.spot('random'));
     else this.flourish();
+  }
+
+  // ---------- resting on cels (0.8.0) ----------
+  // Her crouch-idle cels (tools/make-cels.py) are the show's own hand. On the floor with nothing
+  // to do she crouches and the cel set loops where the rig would only warp one drawing. Anything
+  // that happens (an act, a move, a drag, his pointer, work) ends it on the next frame.
+  canRest() {
+    return Boolean(this.poses && this.poses.hasCels('crouch-idle') && this.mode === 'idle' && this.stance === 'stand'
+      && !this.act && !this.gliding && !this.busy && !this.focus && !this.pointing && !this.dragging && !this.hidden
+      && this.pos.y >= this.floor - 2 && !reducedMotion.matches);
+  }
+
+  rest() {
+    if (!this.canRest()) return false;
+    const until = performance.now() + rand(20000, 50000);
+    this.resting = { until };
+    this.canvas.style.visibility = 'hidden';
+    this.poses.play('crouch-idle', { at: { ...this.pos }, scale: this.scale, facing: this.facing });
+    this.nextMove = Math.max(this.nextMove, until + 1000);
+    return true;
+  }
+
+  unrest() {
+    if (!this.resting) return;
+    this.resting = null;
+    this.poses.stop();
+    this.canvas.style.visibility = '';
+    this.life.reset();
   }
 
   flourish() {
@@ -474,6 +527,12 @@ export class Capri {
     if (!current) return;
     this.act = null;
     if (completed && current.player.act.flip) this.facing *= -1;
+    // follow-through (0.8.0): whatever the last drawing was away from rest, the springs carry
+    // it a few frames and settle it, instead of the next frame snapping back flat
+    if (completed && this.lastAct && !reducedMotion.matches) {
+      this.life.kick({ head: this.lastAct.head || 0, hair: this.lastAct.hair || 0, mane: this.lastAct.mane || 0 });
+    }
+    this.lastAct = null;
     current.done();
   }
 

@@ -35,6 +35,21 @@ test('lean and recoil: directional beats on ones with one smeared snap frame and
   assert.ok(ACTS.recoil.keys[1][1].tilt < -15 && ACTS.recoil.keys[1][1].armL > 1, 'the recoil throws her back, arms up');
 });
 
+test('idle beats (0.8.0): small one-shots on twos, under three seconds, ending near rest', () => {
+  for (const name of ['shift', 'scan', 'stretch', 'fidget']) {
+    const act = ACTS[name];
+    assert.ok(act && !act.loop && !act.fps, `${name} is a one-shot on twos`);
+    assert.equal(act.priority ?? 0, 0, `${name} yields to anything`);
+    const frames = act.keys.reduce((n, [hold]) => n + hold, 0);
+    assert.ok(frames >= 12 && frames <= 36, `${name}: ${frames} frames`);
+    const last = act.keys[act.keys.length - 1][1];
+    for (const [k, v] of Object.entries(last)) {
+      if (Array.isArray(v)) continue;
+      assert.ok(Math.abs(v - (k === 'sx' || k === 'sy' || k === 'long' ? 1 : 0)) <= 0.4, `${name} ends near rest: ${k}=${v}`);
+    }
+  }
+});
+
 test('poses: each show drawing names its file and anchor', () => {
   for (const [name, p] of Object.entries(POSES)) {
     assert.match(p.file, /^pose-[a-z]+\.png$/, name);

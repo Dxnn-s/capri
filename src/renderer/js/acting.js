@@ -84,6 +84,61 @@ export const ACTS = {
   // little nods while the words come out, two drawings on threes
   talk: { priority: 0, keys: rep(2, [[3, { head: 0.04, mane: 0.08 }], [3, { head: 0, mane: 0.03 }]]) },
 
+  // ---- idle beats (0.8.0) ----
+  // Small one-shots on twos, fired now and then under nothing in particular, so the stance
+  // loop is not a metronome. Each ends near rest; the life layer carries the last bit.
+
+  // a weight shift: she settles onto the other hip, the mane tosses over, the head follows late
+  shift: {
+    priority: 0,
+    keys: [
+      [2, { tilt: -1.5, hair: 3, bob: 1 }],
+      [1, { tilt: 2.5, hair: -6, bob: -1, smear: [4, 0] }],
+      [8, { tilt: 2, hair: -2, head: -0.04 }],
+      [6, { tilt: 1.2, hair: 0, head: 0.03 }],
+      [1, { tilt: 0.4 }],
+    ],
+  },
+
+  // a slow look around the room: one way, held, then the other, held longer
+  scan: {
+    priority: 0,
+    keys: [
+      [1, { head: -0.06 }],
+      [10, { head: -0.12, mane: 0.03 }],
+      [1, { head: 0.02, smear: [6, 0] }],
+      [14, { head: 0.14, mane: 0.05 }],
+      [1, { head: 0.05 }],
+      [4, { head: 0 }],
+    ],
+  },
+
+  // a stretch: arms up, mane out, a long hold, and the sag back down
+  stretch: {
+    priority: 0,
+    keys: [
+      [2, { arms: -0.15, sy: 0.97, bob: 1 }],
+      [1, { arms: 0.5, sy: 1.06, bob: -4, mane: 0.2, smear: [0, 6] }],
+      [12, { arms: 0.62, sy: 1.04, bob: -5, mane: 0.25, head: -0.05 }],
+      [2, { arms: 0.2, sy: 1, bob: -1, mane: 0.1 }],
+      [6, { arms: -0.08, sy: 0.98, bob: 1, mane: -0.05 }],
+      [1, {}],
+    ],
+  },
+
+  // a fidget: one hand comes up toward the mask, hangs there, and drops
+  fidget: {
+    priority: 0,
+    directional: true,
+    keys: [
+      [2, { reach: 0.3, long: 0.9 }],
+      [1, { reach: 0.75, long: 0.85, head: 0.06, smear: [-4, 2] }],
+      [10, { reach: 0.8, long: 0.82, head: 0.08 }],
+      [2, { reach: 0.4, long: 0.9, head: 0.04 }],
+      [1, {}],
+    ],
+  },
+
   // the cocked head: anticipation the other way, a smear, then a long hold
   curious: {
     priority: 1,

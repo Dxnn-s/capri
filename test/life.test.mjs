@@ -40,3 +40,28 @@ test('Life: small bounded deltas at rest; the mane lags a move the other way and
   out = life.step(t + 1000 / 24, { x: x + 900, y: 500 });
   assert.equal(out.vx, 0);
 });
+
+test('Life (0.8.0): his pointer pulls her head and holds it; gone, the glances come back; an ended act carries through', () => {
+  const life = new Life({ random: () => 0.5 });
+  let t = 0;
+  let out;
+  for (let i = 0; i < 48; i++) { t += 1000 / 24; out = life.step(t, { x: 300, y: 500 }, { lookAt: 0.16 }); }
+  assert.ok(out.head > 0.14, `the head turned to the pointer: ${out.head}`);
+  for (let i = 0; i < 48; i++) { t += 1000 / 24; out = life.step(t, { x: 300, y: 500 }, { lookAt: 0.16 }); }
+  assert.ok(Math.abs(out.head - 0.16) < 0.01, `and holds there: ${out.head}`);
+  for (let i = 0; i < 72; i++) { t += 1000 / 24; out = life.step(t, { x: 300, y: 500 }); }
+  assert.ok(Math.abs(out.head) < 0.12, `pointer gone, back to her own glances: ${out.head}`);
+  // asleep she does not follow it
+  const dozing = new Life({ random: () => 0.5 });
+  let z;
+  for (let i = 0; i < 48; i++) { z = dozing.step(i * 1000 / 24, { x: 300, y: 500 }, { asleep: true, lookAt: 0.16 }); }
+  assert.ok(Math.abs(z.head) < 0.02, `asleep, no following: ${z.head}`);
+  // follow-through: a kick shows on the next frame and is gone within a second
+  const after = new Life({ random: () => 0.5 });
+  after.step(0, { x: 300, y: 500 });
+  after.kick({ head: 0.2, hair: 8, mane: 0.3 });
+  let k = after.step(1000 / 24, { x: 300, y: 500 });
+  assert.ok(k.head > 0.08 && k.hair > 3 && k.mane > 0.1, `carried: ${JSON.stringify(k)}`);
+  for (let i = 2; i < 30; i++) k = after.step(i * 1000 / 24, { x: 300, y: 500 });
+  assert.ok(Math.abs(k.head) < 0.12 && Math.abs(k.hair) < 2 && Math.abs(k.mane) < 0.08, `settled: ${JSON.stringify(k)}`);
+});

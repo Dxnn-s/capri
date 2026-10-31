@@ -29,6 +29,17 @@ test('capri.js: the stroll hops along the floor and turns at walls; a fling beco
   assert.match(capri, /return Math\.hypot\(vx, vy\) > 700 \? \{ vx, vy \} : null;/, 'a slow let-go is a drop');
 });
 
+test('capri.js (0.8.0): the beats fire from behave, the pointer pulls her gaze, she rests on her cels, acts carry through', () => {
+  assert.match(capri, /if \(this\.mode === 'idle' && !this\.act && !this\.gliding && !this\.focus && \(this\.stance === 'stand' \|\| this\.stance === 'sit'\) && now > this\.nextBeat\) \{/, 'a beat only when nothing else is on');
+  assert.match(capri, /pick\(this\.stance === 'sit' \? \['shift', 'scan', 'fidget'\] : \['shift', 'scan', 'stretch', 'fidget'\]\)/, 'no stretch on a ledge');
+  assert.match(capri, /return clamp\(dx \/ 260, -1, 1\) \* 0\.16 \* this\.facing;/, 'the gaze rides on facing');
+  assert.match(capri, /lookAt: this\.lookAt\(\) \}\);/, 'the life layer gets it every frame');
+  assert.match(capri, /if \(this\.resting && \(now > this\.resting\.until \|\| !this\.canRest\(\)\)\) this\.unrest\(\);/, 'anything that happens ends the rest');
+  assert.match(capri, /this\.poses\.play\('crouch-idle', \{ at: \{ \.\.\.this\.pos \}, scale: this\.scale, facing: this\.facing \}\);/, 'the cels loop at her feet');
+  assert.match(capri, /&& this\.pos\.y >= this\.floor - 2 && !reducedMotion\.matches\);/, 'only on the floor');
+  assert.match(capri, /this\.life\.kick\(\{ head: this\.lastAct\.head \|\| 0, hair: this\.lastAct\.hair \|\| 0, mane: this\.lastAct\.mane \|\| 0 \}\);/, 'the last drawing carries into the springs');
+});
+
 test('flingSpeed: the last tenth of a second of a drag, pure', () => {
   // lift the function out of the class source and run it on its own
   const src = capri.slice(capri.indexOf('  flingSpeed(trail) {'), capri.indexOf('  drop() {'));

@@ -50,6 +50,7 @@ export class Life {
     this.mane = new Spring({ k: 70, zeta: 0.35 }); // hair sway, px: lags a move and swings back
     this.lean = new Spring({ k: 90, zeta: 0.6 });  // whole-body tilt into a move, degrees
     this.gaze = new Spring({ k: 50, zeta: 0.85 }); // a glance, head radians
+    this.flare = new Spring({ k: 60, zeta: 0.5 });  // the mane's flare carrying on after an act
     this.nextGlance = 0;
     this.glanceUntil = 0;
     this.vx = 0;
@@ -68,7 +69,22 @@ export class Life {
    * One frame: her position on screen (px) and her state. Returns the deltas to add to the
    * drawing: { bob, hair, tilt, head, mane, vx, vy }. Call it every drawn frame.
    */
-  step(now, pos, { asleep = false, moving = false } = {}) {
+  /**
+   * Follow-through (0.8.0): an act's last drawing was head/hair/mane away from rest; when it
+   * ends, the springs pick those up and settle them instead of the drawing snapping back flat.
+   */
+  kick({ head = 0, hair = 0, mane = 0 } = {}) {
+    this.gaze.value += head * 0.7;
+    this.mane.value += hair * 0.8;
+    this.flare.value += mane * 0.6;
+  }
+
+  /**
+   * One frame: her position on screen (px) and her state. `lookAt` (0.8.0), head radians in
+   * sprite space, is where his pointer pulls her head while it is near; null lets the random
+   * glances run. Returns the deltas to add to the drawing: { bob, hair, tilt, head, mane, vx, vy }.
+   */
+  step(now, pos, { asleep = false, moving = false, lookAt = null } = {}) {
     const dt = this.last == null ? 0 : Math.min(0.1, Math.max(0, (now - this.last) / 1000));
     this.last = now;
     this.t += dt;
@@ -89,14 +105,22 @@ export class Life {
     this.mane.step(dt);
     this.lean.step(dt);
 
-    // a glance now and then: the head turns a little and comes back
-    if (!asleep && !moving && now > this.nextGlance) {
-      this.nextGlance = now + 4000 + this.random() * 9000;
-      this.glanceUntil = now + 500 + this.random() * 900;
-      this.gaze.target = (this.random() < 0.5 ? -1 : 1) * (0.04 + this.random() * 0.05);
+    if (lookAt != null && !asleep) {
+      // his pointer is near: her head follows it, and the next random glance waits
+      this.gaze.target = lookAt;
+      this.glanceUntil = now;
+      this.nextGlance = Math.max(this.nextGlance, now + 3000);
+    } else {
+      // a glance now and then: the head turns a little and comes back
+      if (!asleep && !moving && now > this.nextGlance) {
+        this.nextGlance = now + 4000 + this.random() * 9000;
+        this.glanceUntil = now + 500 + this.random() * 900;
+        this.gaze.target = (this.random() < 0.5 ? -1 : 1) * (0.04 + this.random() * 0.05);
+      }
+      if (now > this.glanceUntil) this.gaze.target = 0;
     }
-    if (now > this.glanceUntil) this.gaze.target = 0;
     this.gaze.step(dt);
+    this.flare.step(dt);
 
     // breath: slow when asleep, a touch of second harmonic so it is not a metronome
     const rate = asleep ? 0.16 : 0.28;
@@ -111,7 +135,7 @@ export class Life {
       hair: this.mane.value,
       tilt: this.lean.value + shift,
       head: this.gaze.value,
-      mane: 0.02 * b,
+      mane: 0.02 * b + this.flare.value,
       vx: this.vx,
       vy: this.vy,
     };
